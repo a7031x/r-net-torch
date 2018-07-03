@@ -2,8 +2,8 @@ import argparse
 
 def model_opts(parser):
     group = parser.add_argument_group('model')
-    group.add_argument('-word_dim', type=int, default=300)
-    group.add_argument('-char_dim', type=int, default=8)
+    group.add_argument('-char_hidden_size', type=int, default=200)
+    group.add_argument('-ckpt_path', type=str, default='./checkpoint/model.pt')
 
 
 def train_opts(parser):
@@ -11,7 +11,6 @@ def train_opts(parser):
     group.add_argument('-batch_size', type=int, default=64)
     group.add_argument('-learning_rate', type=float, default=0.001)
     group.add_argument('-dropout', type=float, default=0.3)
-    group.add_argument('-using_gan', type=int, default=0)
 
 
 def evaluate_opts(parser):

@@ -12,8 +12,8 @@ class Dataset(object):
         self.train_set = utils.load_json(opt.train_example_file)
         self.dev_set = utils.load_json(opt.dev_example_file)
         self.test_set = utils.load_json(opt.test_example_file)
-        self.word_emb_file = utils.load_json(opt.word_emb_file)
-        self.char_emb_file = utils.load_json(opt.char_emb_file)
+        self.word_emb = utils.load_json(opt.word_emb_file)
+        self.char_emb = utils.load_json(opt.char_emb_file)
         self.w2i = utils.load_json(opt.w2i_file)
         self.c2i = utils.load_json(opt.c2i_file)
 
@@ -122,7 +122,7 @@ class TrainFeeder(Feeder):
 
                 
 def align1d(value, mlen, fill=0):
-    value += [fill] * (mlen - len(value))
+    return value + [fill] * (mlen - len(value))
 
 
 def align2d(values, fill=0):

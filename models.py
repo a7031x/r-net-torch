@@ -15,6 +15,7 @@ class Model(nn.Module):
     def with_embedding(self, word_mat, char_mat):
         self.word_embedding = nn.Embedding.from_pretrained(word_mat, freeze=True)
         self.char_embedding = nn.Embedding.from_pretrained(char_mat, freeze=False)
+        self.char_embedding.padding_idx = data.NULL_ID
 
 
     def initialize(self, char_hidden_size, dropout):
@@ -22,7 +23,7 @@ class Model(nn.Module):
         char_hidden_size: default 200
         '''
         self.char_rnn = rnn.RNNEncoder(
-            embeddings=self.char_embedding,
+            input_size=self.char_embedding.weight.shape[1],
             num_layers=1,
             hidden_size=char_hidden_size,
             bidirectional=True,
@@ -32,18 +33,27 @@ class Model(nn.Module):
 
 
     def forward(self, c, q, ch, qh):
-        #ch_emb = self.char_embedding(ch).view(ch.shape[0]*ch.shape[1], ch.shape[2], -1)#[n*pl, cl, dc]
-        #qh_emb = self.char_embedding(qh).view(qh.shape[0]*qh.shape[1], qh.shape[2], -1)#[n*ql, cl, dc]
-        #ch_emb = self.dropout(ch_emb)
-        #qh_emb = self.dropout(qh_emb)
-        ch = ch.view(ch.shape[0]*ch.shape[1], ch.shape[2])
-        qh = qh.view(qh.shape[0]*qh.shape[1], qh.shape[2])
+        n, pl, _ = ch.shape
+        ql = qh.shape[1]
+        ch = ch.view(n*pl, -1)
+        qh = qh.view(n*ql, -1)
         ch_len = (ch != data.NULL_ID).sum(-1)
         qh_len = (qh != data.NULL_ID).sum(-1)
-        state, _ = self.char_rnn(ch, ch_len)
-        ch_emb = torch.cat(state[0], -1)
-        state, _ = self.char_rnn(qh, qh_len, state)
-        qh_emb = torch.cat(satte[0], -1)
+
+        ch_emb = self.char_embedding(ch)#[n*pl, cl, dc]
+        qh_emb = self.char_embedding(qh)#[n*ql, cl, dc]
+        ch_emb = self.dropout(ch_emb)
+        qh_emb = self.dropout(qh_emb)
+
+        _, state = self.char_rnn(ch_emb, ch_len)#[num_layers,n*pl,dc]
+        ch_emb = torch.cat([state[0], state[1]], -1).view(n, pl, -1)
+        _, state = self.char_rnn(qh_emb, qh_len)
+        qh_emb = torch.cat([state[0], state[1]], -1).view(n, ql, -1)
+
+        c_emb = self.word_embedding(c)
+        q_emb = self.word_embedding(q)
+        c_emb = torch.cat([c_emb, ch_emb], -1)#[n, pl, dw+dc=500]
+        q_emb = torch.cat([q_emb, qh_emb], -1)#[n, ql, dw+dc=500]
 
 
 def build_train_model(opt, dataset=None):

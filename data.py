@@ -52,7 +52,7 @@ class Feeder(object):
 
 
     def word_to_cids(self, word):
-        return [self.char_to_id(char) for char in word]
+        return [self.char_to_id(char) for char in word][:16]
 
 
     def sent_to_ids(self, sent):
@@ -60,7 +60,7 @@ class Feeder(object):
 
 
     def sent_to_cids(self, sent):
-        return [self.word_to_cids(x) for x in sent][:16]
+        return [self.word_to_cids(x) for x in sent]
 
 
     def ids_to_sent(self, ids, join=True):

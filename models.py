@@ -18,7 +18,7 @@ class Model(nn.Module):
         self.char_embedding.padding_idx = data.NULL_ID
 
 
-    def initialize(self, char_hidden_size, dropout):
+    def initialize(self, char_hidden_size, encoder_hidden_size, dropout):
         '''
         char_hidden_size: default 200
         '''
@@ -27,13 +27,22 @@ class Model(nn.Module):
             num_layers=1,
             hidden_size=char_hidden_size,
             bidirectional=True,
-            type='gru',
-            dropout=dropout)
+            type='gru')
+        self.encoder = rnn.StackedBRNN(
+            input_size=self.word_embedding.weight.shape[1]+char_hidden_size,
+            num_layers=3,
+            hidden_size=encoder_hidden_size,
+            rnn_type=nn.GRU,
+            concat_layers=True,
+            padding=True,
+            dropout_rate=dropout)
         self.dropout = nn.Dropout(dropout)
 
 
     def forward(self, c, q, ch, qh):
         n, pl, _ = ch.shape
+
+        #char encoding
         ql = qh.shape[1]
         ch = ch.view(n*pl, -1)
         qh = qh.view(n*ql, -1)
@@ -50,10 +59,20 @@ class Model(nn.Module):
         _, state = self.char_rnn(qh_emb, qh_len)
         qh_emb = torch.cat([state[0], state[1]], -1).view(n, ql, -1)
 
+        #encoding
         c_emb = self.word_embedding(c)
         q_emb = self.word_embedding(q)
         c_emb = torch.cat([c_emb, ch_emb], -1)#[n, pl, dw+dc=500]
         q_emb = torch.cat([q_emb, qh_emb], -1)#[n, ql, dw+dc=500]
+
+        c_len = (c != data.NULL_ID).sum(-1)
+        q_len = (q != data.NULL_ID).sum(-1)
+        c_mask = 1 - func.sequence_mask(c_len)
+        q_mask = 1 - func.sequence_mask(q_len)
+        c = self.encoder(c_emb, c_mask)
+        q = self.encoder(q_emb, q_mask)
+
+        #attention
 
 
 def build_train_model(opt, dataset=None):
@@ -69,7 +88,7 @@ def build_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = Model()
     model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
-    model.initialize(opt.char_hidden_size, opt.dropout)
+    model.initialize(opt.char_hidden_size, opt.encoder_hidden_size, opt.dropout)
     if func.gpu_available():
         model = model.cuda()
     return model

@@ -129,7 +129,7 @@ class Model(nn.Module):
 
 
     def calc_span(self, logits1, logits2):
-        outer = torch.bmm(nn.functional.softmax(logits1).unsqueeze(2), nn.functional.softmax(logits2).unsqueeze(1))
+        outer = torch.bmm(nn.functional.softmax(logits1, dim=-1).unsqueeze(2), nn.functional.softmax(logits2, dim=-1).unsqueeze(1))
         ms = [m.tril(15).triu() for m in torch.unbind(outer, 0)]
         outer = torch.stack(ms, 0)
         yp1 = outer.max(2)[0].max(1)[1]
@@ -153,7 +153,7 @@ class PositionLoss(nn.Module):
 def build_train_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = build_model(opt, dataset)
-    feeder = data.TrainFeeder(dataset)
+    feeder = data.TrainFeeder(dataset, opt.batch_size)
     optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=opt.learning_rate)
     feeder.prepare('train')
     return model, optimizer, feeder
@@ -210,8 +210,7 @@ def restore(opt, model, optimizer, feeder):
 
 
 def save_models(opt, model, optimizer, feeder):
-    model_options = ['num_layers', 'word_vec_size', 'rnn_size', 'bidirectional_encoder', 'attn_type', 'position_encoding',
-        'head_count', 'transformer_hidden_size', 'transformer_enc_layers', 'transformer_dec_layers', 'model_type']
+    model_options = ['char_hidden_size', 'encoder_hidden_size']
     model_options = {k:getattr(opt, k) for k in model_options}
     utils.ensure_folder(opt.ckpt_path)
     torch.save({

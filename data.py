@@ -26,6 +26,7 @@ class Dataset(object):
         filtered_train = len(self.train_set)
         filtered_dev = len(self.dev_set)
         filtered_test = len(self.test_set)
+        self.train_set = sorted(self.train_set, key=lambda x:-len(x['context_tokens']))
         print('train examples: {}/{}, validation examples: {}/{}, test examples: {}/{}'.format(
             filtered_train, total_train, filtered_dev, total_dev, filtered_test, total_test))
 
@@ -86,8 +87,9 @@ class Feeder(object):
 
 
 class TrainFeeder(Feeder):
-    def __init__(self, dataset):
+    def __init__(self, dataset, batch_size):
         super(TrainFeeder, self).__init__(dataset)
+        self.batch_size = batch_size
 
 
     def prepare(self, type):
@@ -98,7 +100,6 @@ class TrainFeeder(Feeder):
             self.prepare_data(self.dataset.dev_set)
         else:
             self.prepare_data(self.dataset.test_set)
-        self.size = len(self.data)
         self.cursor = 0
         self.iteration = 1
 
@@ -106,6 +107,7 @@ class TrainFeeder(Feeder):
     def prepare_data(self, dataset):
         self.data = dataset
         self.data_index = list(range(len(self.data)))
+        self.size = len(self.data)
 
 
     def state(self):
@@ -117,7 +119,13 @@ class TrainFeeder(Feeder):
 
 
     def shuffle_index(self):
-        random.shuffle(self.data_index)
+        batch_ids = list(range((self.size+self.batch_size-1) // self.batch_size))
+        random.shuffle(batch_ids)
+        self.data_index = []
+        for batch_id in batch_ids:
+            start = batch_id * self.batch_size
+            end = min(start+self.batch_size, self.size)
+            self.data_index += range(start, end)
 
 
     def eof(self):
@@ -202,7 +210,7 @@ if __name__ == '__main__':
 
     print('examples: {}/{}/{}'.format(len(dataset.train_set), len(dataset.dev_set), len(dataset.test_set)))
     print('vocab_size: {}/{}'.format(len(dataset.word_emb_file), len(dataset.char_emb_file)))
-    feeder = TrainFeeder(dataset)
+    feeder = TrainFeeder(dataset, 64)
     feeder.prepare('train')
     ids, c, q, ch, qh, y1, y2 = feeder.next(opt.batch_size)
     assert len(ids) == opt.batch_size

@@ -27,12 +27,9 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         loss.backward()
         optimizer.step()
         print('------ITERATION {}, {}/{}, loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, loss.tolist()))
-        '''
-        yp1, yp2 = model.calc_span(logits1, logits2)
-        '''
 
 
-def train(steps=100, evaluate_size=None):
+def train(steps=200, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     if ckpt is not None:

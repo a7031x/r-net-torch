@@ -49,3 +49,39 @@ class Summary(nn.Module):
         a = self.sm(s1).unsqueeze(2)
         res = (a*memory).sum(1)
         return res
+
+
+class Pointer(nn.Module):
+    def __init__(self, input_size, hidden_size):
+        super(Pointer, self).__init__()
+        self.dense_hidden = nn.Linear(input_size*2, hidden_size, bias=False)
+        self.dense_one = nn.Linear(hidden_size, 1, bias=False)
+        self.sm = nn.Softmax(-1)
+
+
+    def forward(self, inputs, state, mask):
+        u = torch.cat([state.unsqueeze(1).expand_as(inputs), inputs], 2)
+        s0 = self.dense_hidden(u).tanh()
+        s = self.dense_one(s0)
+        s1 = func.softmax_mask(s.squeeze(2), mask)
+        a = self.sm(s1).unsqueeze(2)
+        res = (a*inputs).sum(1)
+        return res, s1
+
+
+class PointerNet(nn.Module):
+    def __init__(self, match_size, hidden_size, dropout):
+        super(PointerNet, self).__init__()
+        self.dropout = nn.Dropout(dropout)
+        self.gru = nn.GRUCell(input_size=match_size, hidden_size=match_size)
+        self.pointer = Pointer(input_size=match_size, hidden_size=hidden_size)
+
+
+    def forward(self, init, match, mask):
+        d_match = self.dropout(match)
+        dropout_mask = self.dropout(torch.ones_like(init))
+        inp, logits1 = self.pointer(d_match, init*dropout_mask, mask)
+        d_inp = self.dropout(inp)
+        state = self.gru(d_inp, init)
+        _, logits2 = self.pointer(d_match, state*dropout_mask, mask)
+        return logits1, logits2

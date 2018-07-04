@@ -78,6 +78,10 @@ class Model(nn.Module):
             memory_size=self.match_size,
             hidden_size=encoder_hidden_size,
             dropout=dropout)
+        self.pointer_net = layers.PointerNet(
+            match_size=self.match_size,
+            hidden_size=encoder_hidden_size,
+            dropout=dropout)
 
 
     def forward(self, c, q, ch, qh):
@@ -120,7 +124,30 @@ class Model(nn.Module):
         match = self.match_encoder(self_att, c_mask)
         #pointer
         init = self.summary(q[:,:,-2*self.encoder_hidden_size:], q_mask)
-        print(init.shape)
+        logits1, logits2 = self.pointer_net(init, match, c_mask)
+        return logits1, logits2
+
+
+    def calc_span(self, logits1, logits2):
+        outer = torch.bmm(nn.functional.softmax(logits1).unsqueeze(2), nn.functional.softmax(logits2).unsqueeze(1))
+        ms = [m.tril(15).triu() for m in torch.unbind(outer, 0)]
+        outer = torch.stack(ms, 0)
+        yp1 = outer.max(2)[0].max(1)[1]
+        yp2 = outer.max(1)[0].max(1)[1]
+        return yp1, yp2
+
+
+class PositionLoss(nn.Module):
+    def __init__(self):
+        super(PositionLoss, self).__init__()
+        self.lsm = nn.LogSoftmax(dim=-1)
+        self.criterion = torch.nn.NLLLoss(size_average=False)
+
+
+    def forward(self, logits, target):
+        output = self.lsm(logits)
+        loss = self.criterion(output, target)
+        return loss
 
 
 def build_train_model(opt, dataset=None):
@@ -143,7 +170,7 @@ def build_model(opt, dataset=None):
 
 
 def make_loss_compute():
-    criterion = torch.nn.NLLLoss(size_average=False)
+    criterion = PositionLoss()
     if func.gpu_available():
         criterion = criterion.cuda()
     return criterion

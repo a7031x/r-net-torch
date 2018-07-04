@@ -18,9 +18,17 @@ def run_epoch(opt, model, feeder, optimizer, batches):
     criterion = models.make_loss_compute()
     while nbatch < batches:
         ids, cs, qs, chs, qhs, y1s, y2s = feeder.next(opt.batch_size)
-        batch_size = len(ids)
         nbatch += 1
-        model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
+        logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
+        t1, t2 = func.tensor(y1s), func.tensor(y2s)
+        loss = (criterion(logits1, t1) + criterion(logits2, t2)).mean()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        print('------ITERATION {}, {}/{}, loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, loss.tolist()))
+        '''
+        yp1, yp2 = model.calc_span(logits1, logits2)
+        '''
 
 
 def train(steps=200, evaluate_size=500):

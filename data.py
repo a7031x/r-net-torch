@@ -53,9 +53,10 @@ class Feeder(object):
         q = self.sent_to_ids(question)
         ch = self.sent_to_cids(context)
         qh = self.sent_to_cids(question)
-        y1, y2 = [0.0] * len(c), [0.0] * len(c)
         start, end = example['y1s'][-1], example['y2s'][-1]
-        y1[start] = y2[end] = 1.0
+        #y1, y2 = [0.0] * len(c), [0.0] * len(c)
+        #y1[start] = y2[end] = 1.0
+        y1, y2 = start, end
         return example['id'], c, q, ch, qh, y1, y2
 
 
@@ -74,6 +75,7 @@ class TrainFeeder(Feeder):
             self.prepare_data(self.dataset.test_set)
         self.size = len(self.data)
         self.cursor = 0
+        self.iteration = 1
 
 
     def prepare_data(self, dataset):

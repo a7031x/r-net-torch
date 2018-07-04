@@ -29,7 +29,7 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         print('------ITERATION {}, {}/{}, loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, loss.tolist()))
 
 
-def train(steps=300, evaluate_size=None):
+def train(steps=400, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     if ckpt is not None:

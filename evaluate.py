@@ -49,8 +49,8 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
 
 
 def evaluate_em_f1(feeder, pids, predict_start, predict_end, target_start, target_end):
-    predict = feeder.ids_to_tokens(pids[predict_start:predict_end+1])
-    target = feeder.ids_to_tokens(pids[target_start:target_end+1])
+    predict = feeder.ids_to_sent(pids[predict_start:predict_end+1])
+    target = feeder.ids_to_sent(pids[target_start:target_end+1])
     em = metric_max_over_ground_truths(exact_match_score, predict, target)
     f1 = metric_max_over_ground_truths(f1_score, predict, target)
     return em, f1
@@ -66,7 +66,7 @@ def evaluate_batch(feeder, cs, y1p, y2p, y1s, y2s):
     return total_em, total_f1, total
 
 
-def evaluate_accuracy(model, dataset, batch_size=32, beam_size=5, min_length=5, max_length=20, best_k_questions=3, size=None, output_file='./output/dev.txt'):
+def evaluate_accuracy(model, dataset, batch_size=64, size=None, output_file='./output/dev.txt'):
     feeder = data.TrainFeeder(dataset)
     feeder.prepare('dev')
     size = size or feeder.size

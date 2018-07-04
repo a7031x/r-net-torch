@@ -41,6 +41,7 @@ def data_opts(parser):
     group.add_argument('-char_emb_file', type=str, default='./generate/emb.char.json')
     group.add_argument('-w2i_file', type=str, default='./generate/w2i.json')
     group.add_argument('-c2i_file', type=str, default='./generate/c2i.json')
+    group.add_argument('-max_passage_tokens', type=int, default=400)
 
     group.add_argument('-train_example_file', type=str, default='./generate/example.train.json')
     group.add_argument('-dev_example_file', type=str, default='./generate/example.dev.json')

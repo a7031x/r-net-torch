@@ -141,7 +141,7 @@ class PositionLoss(nn.Module):
     def __init__(self):
         super(PositionLoss, self).__init__()
         self.lsm = nn.LogSoftmax(dim=-1)
-        self.criterion = torch.nn.NLLLoss(size_average=False)
+        self.criterion = torch.nn.NLLLoss(size_average=True)
 
 
     def forward(self, logits, target):

@@ -16,6 +16,22 @@ class Dataset(object):
         self.char_emb = utils.load_json(opt.char_emb_file)
         self.w2i = utils.load_json(opt.w2i_file)
         self.c2i = utils.load_json(opt.c2i_file)
+        self.i2w = {k:v for v,k in self.w2i.items()}
+        total_train = len(self.train_set)
+        total_dev = len(self.dev_set)
+        total_test = len(self.test_set)
+        self.train_set = self.filter(opt, self.train_set)
+        self.dev_set = self.filter(opt, self.dev_set)
+        self.test_set = self.filter(opt, self.test_set)
+        filtered_train = len(self.train_set)
+        filtered_dev = len(self.dev_set)
+        filtered_test = len(self.test_set)
+        print('train examples: {}/{}, validation examples: {}/{}, test examples: {}/{}'.format(
+            filtered_train, total_train, filtered_dev, total_dev, filtered_test, total_test))
+
+
+    def filter(self, opt, dataset):
+        return [e for e in dataset if len(e['context_tokens']) <= opt.max_passage_tokens]
 
 
 class Feeder(object):
@@ -43,7 +59,16 @@ class Feeder(object):
 
 
     def sent_to_cids(self, sent):
-        return[self.word_to_cids(x) for x in sent]
+        return [self.word_to_cids(x) for x in sent]
+
+
+    def ids_to_sent(self, ids, join=True):
+        r = []
+        for id in ids:
+            if id in [NULL_ID]:
+                break
+            r.append(self.dataset.i2w[id])
+        return ' '.join(r) if join else r
 
 
     def parse_example(self, example):
@@ -97,6 +122,10 @@ class TrainFeeder(Feeder):
 
     def eof(self):
         return self.cursor == self.size
+
+
+    def sort(self, size=None):
+        self.data_index = sorted(range(size or self.size), key=lambda x:-len(self.data[x]['context_tokens']))
 
 
     def next(self, batch_size):

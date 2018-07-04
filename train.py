@@ -2,6 +2,7 @@ import options
 import argparse
 import evaluate
 import models
+import random
 import func
 
 
@@ -17,7 +18,7 @@ def run_epoch(opt, model, feeder, optimizer, batches):
     nbatch = 0
     criterion = models.make_loss_compute()
     while nbatch < batches:
-        ids, cs, qs, chs, qhs, y1s, y2s = feeder.next(opt.batch_size)
+        _, cs, qs, chs, qhs, y1s, y2s = feeder.next(opt.batch_size)
         nbatch += 1
         logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
         t1, t2 = func.tensor(y1s), func.tensor(y2s)
@@ -31,31 +32,26 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         '''
 
 
-def train(steps=200, evaluate_size=500):
+def train(steps=100, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
-    '''
     if ckpt is not None:
-        last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
+        _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
     else:
         last_accuracy = 0
-    '''
     while True:
         run_epoch(opt, model, feeder, optimizer, steps)
-        '''
-        accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
+        _, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
         if accuracy > last_accuracy:
-            utils.mkdir(config.checkpoint_folder)
-            models.save_models(opt, generator, discriminator, g_optimizer, d_optimizer, feeder)
+            models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy
             print('MODEL SAVED WITH ACCURACY {:>.2F}.'.format(accuracy))
         else:
             if random.randint(0, 4) == 0:
-                models.restore(generator, discriminator, g_optimizer, d_optimizer)
+                models.restore(opt, model, optimizer, feeder)
                 print('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
             else:
                 print('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
-        '''
 
 
 train()

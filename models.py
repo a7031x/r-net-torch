@@ -5,6 +5,7 @@ import data
 import rnn
 import utils
 import os
+import layers
 
 class Model(nn.Module):
     def without_embedding(self, word_vocab_size, word_dim, char_vocab_size, char_dim):
@@ -22,21 +23,61 @@ class Model(nn.Module):
         '''
         char_hidden_size: default 200
         '''
+        self.dropout = nn.Dropout(dropout)
+        self.encoder_hidden_size = encoder_hidden_size
+        encoder_layers = 3
+        #char encoding
         self.char_rnn = rnn.RNNEncoder(
             input_size=self.char_embedding.weight.shape[1],
             num_layers=1,
             hidden_size=char_hidden_size,
             bidirectional=True,
             type='gru')
+        #encoding
         self.encoder = rnn.StackedBRNN(
             input_size=self.word_embedding.weight.shape[1]+char_hidden_size,
-            num_layers=3,
             hidden_size=encoder_hidden_size,
+            num_layers=encoder_layers,
             rnn_type=nn.GRU,
             concat_layers=True,
             padding=True,
             dropout_rate=dropout)
-        self.dropout = nn.Dropout(dropout)
+        self.encoder_size = encoder_layers*2*encoder_hidden_size
+        #attention
+        self.pq_attention = layers.DotAttention(
+            input_size=self.encoder_size,
+            memory_size=self.encoder_size,
+            hidden_size=encoder_hidden_size,
+            dropout=dropout)
+        self.pq_encoder = rnn.StackedBRNN(
+            input_size=self.encoder_size*2,
+            hidden_size=encoder_hidden_size,
+            num_layers=1,
+            rnn_type=nn.GRU,
+            concat_layers=True,
+            padding=True,
+            dropout_rate=dropout)
+        self.pq_attention_size = encoder_hidden_size*2
+        #match
+        self.match_attention = layers.DotAttention(
+            input_size=self.pq_attention_size,
+            memory_size=self.pq_attention_size,
+            hidden_size=encoder_hidden_size,
+            dropout=dropout)
+        self.match_encoder = rnn.StackedBRNN(
+            input_size=self.pq_attention_size*2,
+            hidden_size=encoder_hidden_size,
+            num_layers=1,
+            rnn_type=nn.GRU,
+            concat_layers=True,
+            padding=True,
+            dropout_rate=dropout)
+        self.match_size = encoder_hidden_size*2
+        #pointer
+        self.summary = layers.Summary(
+            memory_size=self.match_size,
+            hidden_size=encoder_hidden_size,
+            dropout=dropout)
 
 
     def forward(self, c, q, ch, qh):
@@ -67,12 +108,19 @@ class Model(nn.Module):
 
         c_len = (c != data.NULL_ID).sum(-1)
         q_len = (q != data.NULL_ID).sum(-1)
-        c_mask = 1 - func.sequence_mask(c_len)
-        q_mask = 1 - func.sequence_mask(q_len)
+        c_mask = func.sequence_mask(c_len)
+        q_mask = func.sequence_mask(q_len)
         c = self.encoder(c_emb, c_mask)
         q = self.encoder(q_emb, q_mask)
-
         #attention
+        qc_att = self.pq_attention(c, q, q_mask)
+        att = self.pq_encoder(qc_att, c_mask)
+        #match
+        self_att = self.match_attention(att, att, c_mask)
+        match = self.match_encoder(self_att, c_mask)
+        #pointer
+        init = self.summary(q[:,:,-2*self.encoder_hidden_size:], q_mask)
+        print(init.shape)
 
 
 def build_train_model(opt, dataset=None):

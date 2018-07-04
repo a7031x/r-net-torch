@@ -18,5 +18,9 @@ def sequence_mask(lengths, max_len=None):
     return torch.arange(0, max_len).type_as(lengths).repeat(batch_size, 1).lt(lengths.unsqueeze(1))
 
 
+def softmax_mask(val, mask):
+    return -1E18 * (1 - mask.float()) + val
+    
+
 def gpu_available():
     return torch.cuda.is_available()

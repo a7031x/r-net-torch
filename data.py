@@ -12,6 +12,8 @@ class Dataset(object):
         self.train_set = utils.load_json(opt.train_example_file)
         self.dev_set = utils.load_json(opt.dev_example_file)
         self.test_set = utils.load_json(opt.test_example_file)
+        self.dev_eval = {e['id']:e for e in self.dev_set}
+        self.test_eval = {e['id']:e for e in self.test_set}
         self.word_emb = utils.load_json(opt.word_emb_file)
         self.char_emb = utils.load_json(opt.char_emb_file)
         self.w2i = utils.load_json(opt.w2i_file)

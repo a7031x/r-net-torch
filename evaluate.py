@@ -48,18 +48,21 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
     return max(scores_for_ground_truths)
 
 
-def evaluate_em_f1(feeder, pids, predict_start, predict_end, target_start, target_end):
-    predict = feeder.ids_to_sent(pids[predict_start:predict_end+1])
-    target = feeder.ids_to_sent(pids[target_start:target_end+1])
-    em = metric_max_over_ground_truths(exact_match_score, predict, target)
-    f1 = metric_max_over_ground_truths(f1_score, predict, target)
+def evaluate_em_f1(feeder, tokens, predict_start, predict_end, target_starts, target_ends):
+    predict = ' '.join(tokens[predict_start:predict_end+1])
+    targets = [' '.join(tokens[start:end+1]) for start, end in zip(target_starts, target_ends)]
+    em = metric_max_over_ground_truths(exact_match_score, predict, targets)
+    f1 = metric_max_over_ground_truths(f1_score, predict, targets)
     return em, f1
 
 
-def evaluate_batch(feeder, cs, y1p, y2p, y1s, y2s):
+def evaluate_batch(feeder, ids, y1p, y2p):
     total_em, total_f1, total = 0, 0, 0
-    for pids, predict_start, predict_end, target_start, target_end in zip(cs, y1p, y2p, y1s, y2s):
-        em, f1 = evaluate_em_f1(feeder, pids, predict_start, predict_end, target_start, target_end)
+    for id, predict_start, predict_end in zip(ids, y1p, y2p):
+        eval_example = feeder.dataset.dev_eval[id]
+        tokens = eval_example['context_tokens']
+        target_starts, target_ends = eval_example['y1s'], eval_example['y2s']
+        em, f1 = evaluate_em_f1(feeder, tokens, predict_start, predict_end, target_starts, target_ends)
         total_em += em
         total_f1 += f1
         total += 1
@@ -74,7 +77,7 @@ def evaluate_accuracy(model, dataset, batch_size=48, size=None, output_file='./o
     lines = []
     total_em, total_f1, total = 0, 0, 0
     while feeder.cursor < size:
-        _, cs, qs, chs, qhs, y1s, y2s = feeder.next(batch_size)
+        ids, cs, qs, chs, qhs, y1s, y2s = feeder.next(batch_size)
         logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
         y1p, y2p = model.calc_span(logits1, logits2)
         for pids, qids, lable_start, label_end, predict_start, predict_end in zip(cs, qs, y1s, y2s, y1p, y2p):
@@ -83,7 +86,7 @@ def evaluate_accuracy(model, dataset, batch_size=48, size=None, output_file='./o
             lines.append('question:  ' + feeder.ids_to_sent(qids))
             lines.append('reference: ' + feeder.ids_to_sent(pids[lable_start:label_end+1]))
             lines.append('predict:   ' + feeder.ids_to_sent(pids[predict_start:predict_end+1]))
-        em, f1, bs = evaluate_batch(feeder, cs, y1p.tolist(), y2p.tolist(), y1s, y2s)
+        em, f1, bs = evaluate_batch(feeder, ids, y1p.tolist(), y2p.tolist())
         total_em += em
         total_f1 += f1
         total += bs

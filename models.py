@@ -33,6 +33,16 @@ class Model(nn.Module):
             hidden_size=char_hidden_size,
             bidirectional=True,
             type='gru')
+        '''
+        self.char_rnn = rnn.StackedBRNN(
+            input_size=self.char_embedding.weight.shape[1],
+            hidden_size=char_hidden_size,
+            num_layers=1,
+            rnn_type=nn.GRU,
+            concat_layers=True,
+            padding=True,
+            dropout_rate=dropout)
+        '''
         #encoding
         self.encoder = rnn.StackedBRNN(
             input_size=self.word_embedding.weight.shape[1]+char_hidden_size,

@@ -33,12 +33,12 @@ def train(steps=300, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     if ckpt is not None:
-        _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
+        _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, size=evaluate_size)
     else:
         last_accuracy = 0
     while True:
         run_epoch(opt, model, feeder, optimizer, steps)
-        _, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, size=evaluate_size)
+        _, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, size=evaluate_size)
         if accuracy > last_accuracy:
             models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy

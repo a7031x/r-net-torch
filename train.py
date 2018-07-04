@@ -27,7 +27,7 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        print('------ITERATION {}, {}/{}, loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, loss.tolist()))
+        print('------ITERATION {}, {}/{}, epoch: {:>.2F}% loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, 100.0*nbatch/batches, loss.tolist()))
 
 
 class Logger(object):

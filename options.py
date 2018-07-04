@@ -9,7 +9,7 @@ def model_opts(parser):
 
 def train_opts(parser):
     group = parser.add_argument_group('train')
-    group.add_argument('-batch_size', type=int, default=48)
+    group.add_argument('-batch_size', type=int, default=32)
     group.add_argument('-learning_rate', type=float, default=0.001)
     group.add_argument('-dropout', type=float, default=0.3)
 

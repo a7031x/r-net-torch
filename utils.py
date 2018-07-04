@@ -33,6 +33,8 @@ def load_json(filename):
 
 
 def read_all_lines(filename, encoding='utf8'):
+    if not os.path.isfile(filename):
+        return []
     with open(filename, encoding=encoding) as file:
         for line in file:
             line = line.rstrip().strip('\ufeff')

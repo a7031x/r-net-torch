@@ -4,6 +4,7 @@ import evaluate
 import models
 import random
 import func
+import utils
 
 
 def make_options():
@@ -29,9 +30,22 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         print('------ITERATION {}, {}/{}, loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, loss.tolist()))
 
 
+class Logger(object):
+    def __init__(self, opt):
+        self.output_file = opt.summary_file
+        self.lines = utils.read_all_lines(self.output_file)
+
+
+    def __call__(self, message):
+        print(message)
+        self.lines.append(message)
+        utils.write_all_lines(self.output_file, self.lines)
+
+
 def train(steps=400, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
+    log = Logger(opt)
     if ckpt is not None:
         _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, size=evaluate_size)
     else:
@@ -42,13 +56,13 @@ def train(steps=400, evaluate_size=None):
         if accuracy > last_accuracy:
             models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy
-            print('MODEL SAVED WITH ACCURACY {:>.2F}.'.format(accuracy))
+            log('MODEL SAVED WITH ACCURACY {:>.2F}.'.format(accuracy))
         else:
             if random.randint(0, 4) == 0:
                 models.restore(opt, model, optimizer, feeder)
-                print('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
+                log('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
             else:
-                print('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
+                log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
 
 
 train()

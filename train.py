@@ -33,7 +33,7 @@ def run_epoch(opt, model, feeder, optimizer, batches):
 class Logger(object):
     def __init__(self, opt):
         self.output_file = opt.summary_file
-        self.lines = utils.read_all_lines(self.output_file)
+        self.lines = list(utils.read_all_lines(self.output_file))
 
 
     def __call__(self, message):

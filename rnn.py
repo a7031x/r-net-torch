@@ -182,7 +182,7 @@ class RNNEncoder(EncoderBase):
 
 
     def forward(self, src, lengths, encoder_state=None, ordered=False):
-        if lengths is not None:
+        if lengths is not None and lengths.max() != lengths.min():
             lengths = lengths + lengths.eq(0).long()
             if ordered:
                 packed_emb = pack(src, lengths, batch_first=self.rnn.batch_first)

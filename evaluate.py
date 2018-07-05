@@ -69,7 +69,7 @@ def evaluate_batch(feeder, ids, y1p, y2p):
     return total_em, total_f1, total
 
 
-def evaluate_accuracy(model, dataset, batch_size=48, size=None, output_file='./output/dev.txt'):
+def evaluate_accuracy(model, dataset, batch_size=32, size=None, output_file='./output/dev.txt'):
     model.eval()
     feeder = data.TrainFeeder(dataset, batch_size)
     feeder.prepare('dev')

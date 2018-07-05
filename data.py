@@ -113,11 +113,13 @@ class TrainFeeder(Feeder):
 
 
     def state(self):
-        return self.iteration, self.cursor, self.data_index
+        return self.iteration, self.cursor, self.data_index, self.batch_size
 
 
     def load_state(self, state):
-        self.iteration, self.cursor, self.data_index = state
+        self.iteration, self.cursor, self.data_index, batch_size = state
+        if batch_size != self.batch_size:
+            self.shuffle_index()
 
 
     def shuffle_index(self):

@@ -16,6 +16,7 @@ def make_options():
 
 
 def run_epoch(opt, model, feeder, optimizer, batches):
+    model.train()
     nbatch = 0
     criterion = models.make_loss_compute()
     while nbatch < batches:

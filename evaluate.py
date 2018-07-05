@@ -70,6 +70,7 @@ def evaluate_batch(feeder, ids, y1p, y2p):
 
 
 def evaluate_accuracy(model, dataset, batch_size=48, size=None, output_file='./output/dev.txt'):
+    model.eval()
     feeder = data.TrainFeeder(dataset, batch_size)
     feeder.prepare('dev')
     size = size or feeder.size

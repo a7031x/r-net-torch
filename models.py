@@ -19,12 +19,13 @@ class Model(nn.Module):
         self.char_embedding.padding_idx = data.NULL_ID
 
 
-    def initialize(self, char_hidden_size, encoder_hidden_size, dropout):
+    def initialize(self, char_hidden_size, encoder_hidden_size, rnn_type, dropout):
         '''
         char_hidden_size: default 200
         '''
         self.dropout = nn.Dropout(dropout)
         self.encoder_hidden_size = encoder_hidden_size
+        self.rnn_type = nn.GRU if rnn_type == 'gru' else nn.LSTM
         encoder_layers = 3
         #char encoding
         self.char_rnn = rnn.RNNEncoder(
@@ -48,7 +49,7 @@ class Model(nn.Module):
             input_size=self.word_embedding.weight.shape[1]+char_hidden_size,
             hidden_size=encoder_hidden_size,
             num_layers=encoder_layers,
-            rnn_type=nn.GRU,
+            rnn_type=self.rnn_type,
             concat_layers=True,
             padding=True,
             dropout_rate=dropout)
@@ -63,7 +64,7 @@ class Model(nn.Module):
             input_size=self.encoder_size*2,
             hidden_size=encoder_hidden_size,
             num_layers=1,
-            rnn_type=nn.GRU,
+            rnn_type=self.rnn_type,
             concat_layers=True,
             padding=True,
             dropout_rate=dropout)
@@ -78,7 +79,7 @@ class Model(nn.Module):
             input_size=self.pq_attention_size*2,
             hidden_size=encoder_hidden_size,
             num_layers=1,
-            rnn_type=nn.GRU,
+            rnn_type=self.rnn_type,
             concat_layers=True,
             padding=True,
             dropout_rate=dropout)
@@ -173,7 +174,7 @@ def build_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = Model()
     model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
-    model.initialize(opt.char_hidden_size, opt.encoder_hidden_size, opt.dropout)
+    model.initialize(opt.char_hidden_size, opt.encoder_hidden_size, opt.rnn_type, opt.dropout)
     if func.gpu_available():
         model = model.cuda()
     return model
@@ -192,6 +193,7 @@ def load_or_create_models(opt, train):
         model_options = ckpt['model_options']
         for k, v in model_options.items():
             setattr(opt, k, v)
+            print('-{}: {}'.format(k, v))
     else:
         ckpt = None
     if train:
@@ -220,7 +222,7 @@ def restore(opt, model, optimizer, feeder):
 
 
 def save_models(opt, model, optimizer, feeder):
-    model_options = ['char_hidden_size', 'encoder_hidden_size']
+    model_options = ['char_hidden_size', 'encoder_hidden_size', 'rnn_type']
     model_options = {k:getattr(opt, k) for k in model_options}
     utils.ensure_folder(opt.ckpt_path)
     torch.save({

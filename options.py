@@ -4,6 +4,7 @@ def model_opts(parser):
     group = parser.add_argument_group('model')
     group.add_argument('-char_hidden_size', type=int, default=200)
     group.add_argument('-encoder_hidden_size', type=int, default=75)
+    group.add_argument('-rnn_type', type=str, default='gru')
     group.add_argument('-ckpt_path', type=str, default='./checkpoint/model.pt')
 
 

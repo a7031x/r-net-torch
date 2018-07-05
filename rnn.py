@@ -183,13 +183,17 @@ class RNNEncoder(EncoderBase):
 
     def forward(self, src, lengths, encoder_state=None, ordered=False):
         if lengths is not None and lengths.max() != lengths.min():
-            lengths = lengths + lengths.eq(0).long()
+            padded_lengths = lengths + lengths.eq(0).long()
+            mask = (lengths != 0).float()
+            output_mask = mask.view(-1, 1, 1)
+            state_mask = mask.view(1, -1, 1)
             if ordered:
-                packed_emb = pack(src, lengths, batch_first=self.rnn.batch_first)
+                packed_emb = pack(src, padded_lengths, batch_first=self.rnn.batch_first)
                 memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
-                memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
+                memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0] * output_mask
+                encoder_final = [s * state_mask for s in encoder_final] if self.type == 'lstm' else encoder_final * state_mask
             else:
-                sorted_lengths, perm_idx = lengths.sort(descending=True)
+                sorted_lengths, perm_idx = padded_lengths.sort(descending=True)
                 sorted_src = src[perm_idx]
                 if encoder_state is not None:
                     encoder_state = encoder_state[perm_idx]
@@ -197,8 +201,8 @@ class RNNEncoder(EncoderBase):
                 memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
                 memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
                 _, odx = perm_idx.sort()
-                memory_bank = memory_bank[odx]
-                encoder_final = [s[:, odx, :] for s in encoder_final] if self.type == 'lstm' else encoder_final[:, odx, :]
+                memory_bank = memory_bank[odx] * output_mask
+                encoder_final = [s[:, odx, :] * state_mask for s in encoder_final] if self.type == 'lstm' else encoder_final[:, odx, :] * state_mask
         else:
             memory_bank, encoder_final = self.rnn(src, encoder_state)
         return memory_bank, encoder_final

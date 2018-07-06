@@ -1,6 +1,6 @@
 
 __pycache__
-generate
+generate*
 data
-checkpoint
-output
+checkpoint*
+output*

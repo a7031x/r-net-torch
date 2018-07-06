@@ -28,14 +28,16 @@ def convert_idx(text, tokens):
     return spans
 
 
-def process_file(filename, word_counter, char_counter, tokenizer):
+def process_file(filename, word_counter, char_counter, tokenizer, process_text=None):
     source = utils.load_json(filename)
     total = 0
     examples = []
     eval_examples = {}
+    process_text = process_text or (lambda text: text)
+
     for article in tqdm.tqdm(source['data']):
         for para in article['paragraphs']:
-            context = para['context'].replace("''", '" ').replace("``", '" ')
+            context = process_text(para['context'].replace("''", '" ').replace("``", '" '))
             context_tokens = tokenizer(context)
             context_chars = [list(token) for token in context_tokens]
             spans = convert_idx(context, context_tokens)
@@ -45,7 +47,7 @@ def process_file(filename, word_counter, char_counter, tokenizer):
                     char_counter[char] += len(para['qas'])
             for qa in para['qas']:
                 total += 1
-                ques = qa["question"].replace("''", '" ').replace("``", '" ')
+                ques = process_text(qa["question"].replace("''", '" ').replace("``", '" '))
                 ques_tokens = tokenizer(ques)
                 ques_chars = [list(token) for token in ques_tokens]
                 for token in ques_tokens:
@@ -55,7 +57,7 @@ def process_file(filename, word_counter, char_counter, tokenizer):
                 y1s, y2s = [], []
                 answer_texts = []
                 for answer in qa['answers']:
-                    answer_text = answer['text']
+                    answer_text = process_text(answer['text'])
                     answer_start = answer['answer_start']
                     answer_end = answer_start + len(answer_text)
                     answer_texts.append(answer_text)
@@ -63,6 +65,8 @@ def process_file(filename, word_counter, char_counter, tokenizer):
                     for idx, span in enumerate(spans):
                         if not (answer_end <= span[0] or answer_start >= span[1]):
                             answer_span.append(idx)
+                    if not answer_span:
+                        print('{} in ({}, {}) out of context boundary'.format(answer_text, answer_start, answer_end))
                     y1, y2 = answer_span[0], answer_span[-1]
                     y1s.append(y1)
                     y2s.append(y2)
@@ -126,9 +130,28 @@ if __name__ == '__main__':
         dev_examples, dev_eval = process_file(opts.squad_dev_file, word_counter, char_counter, word_tokenize)
         test_examples, test_eval = process_file(opts.squad_test_file, word_counter, char_counter, word_tokenize)
     elif opts.dataset == 'drcd':
-        train_examples, train_eval = process_file(opts.drcd_train_file, word_counter, char_counter, list)
-        dev_examples, dev_eval = process_file(opts.drcd_dev_file, word_counter, char_counter, list)
-        test_examples, test_eval = process_file(opts.drcd_test_file, word_counter, char_counter, list)
+        simplify = None
+        if opts.cws == 'ltp':
+            import pyltp
+            segmentor = pyltp.Segmentor()
+            segmentor.load('./data/ltp_data/cws.model')
+            def tokenize(text):
+                return segmentor.segment(text)
+        elif opts.cws == 'snownlp':
+            from snownlp import SnowNLP
+            def tokenize(text):
+                s = SnowNLP(text)
+                return s.words
+            simplify = lambda text: SnowNLP(text).han
+        elif opts.cws == 'jieba':
+            import jieba
+            def tokenize(text):
+                return list(jieba.cut(text))
+        else:
+            tokenize = list
+        train_examples, train_eval = process_file(opts.drcd_train_file, word_counter, char_counter, tokenize, simplify)
+        dev_examples, dev_eval = process_file(opts.drcd_dev_file, word_counter, char_counter, tokenize, simplify)
+        test_examples, test_eval = process_file(opts.drcd_test_file, word_counter, char_counter, tokenize, simplify)
 
     word_emb_mat, word2idx_dict = get_embedding(word_counter, emb_file=opts.glove_word_emb_file if opts.dataset == 'squad' else None, vec_size=opts.word_dim)
     char_emb_mat, char2idx_dict = get_embedding(char_counter, vec_size=opts.char_dim)

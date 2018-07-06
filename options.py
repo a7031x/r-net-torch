@@ -37,6 +37,7 @@ def preprocess_opts(parser):
     group.add_argument('-drcd_train_file', type=str, default='./data/drcd/DRCD_training.json')
     group.add_argument('-drcd_dev_file', type=str, default='./data/drcd/DRCD_dev.json')
     group.add_argument('-drcd_test_file', type=str, default='./data/drcd/DRCD_dev.json')
+    group.add_argument('-cws', type=str, default='jieba')
     group.add_argument('-glove_word_emb_file', type=str, default='./data/glove/glove.840B.300d.txt')
 
 

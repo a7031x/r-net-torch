@@ -37,7 +37,10 @@ def preprocess_opts(parser):
     group.add_argument('-drcd_train_file', type=str, default='./data/drcd/DRCD_training.json')
     group.add_argument('-drcd_dev_file', type=str, default='./data/drcd/DRCD_dev.json')
     group.add_argument('-drcd_test_file', type=str, default='./data/drcd/DRCD_dev.json')
-    group.add_argument('-cws', type=str, default='jieba')
+    group.add_argument('-cmrc_train_file', type=str, default='./data/cmrc/cmrc2018_train.json')
+    group.add_argument('-cmrc_dev_file', type=str, default='./data/cmrc/cmrc2018_dev.json')
+    group.add_argument('-cmrc_test_file', type=str, default='./data/cmrc/cmrc2018_trial.json')
+    group.add_argument('-cws', type=str, default='char')
     group.add_argument('-glove_word_emb_file', type=str, default='./data/glove/glove.840B.300d.txt')
 
 
@@ -49,7 +52,7 @@ def data_opts(parser):
     group.add_argument('-char_emb_file', type=str, default='./generate/emb.char.json')
     group.add_argument('-w2i_file', type=str, default='./generate/w2i.json')
     group.add_argument('-c2i_file', type=str, default='./generate/c2i.json')
-    group.add_argument('-dataset', type=str, default='drcd')
+    group.add_argument('-dataset', type=str, default='cmrc')
     group.add_argument('-meta_file', type=str, default='./generate/meta.json')
     group.add_argument('-max_passage_tokens', type=int, default=1000)
 
@@ -57,6 +60,3 @@ def data_opts(parser):
     group.add_argument('-dev_example_file', type=str, default='./generate/example.dev.json')
     group.add_argument('-test_example_file', type=str, default='./generate/example.test.json')
 
-    group.add_argument('-train_eval_file', type=str, default='./generate/eval.train.json')
-    group.add_argument('-dev_eval_file', type=str, default='./generate/eval.dev.json')
-    group.add_argument('-test_eval_file', type=str, default='./generate/eval.test.json')

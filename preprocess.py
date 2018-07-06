@@ -32,7 +32,6 @@ def process_file(filename, word_counter, char_counter, tokenizer, process_text=N
     source = utils.load_json(filename)
     total = 0
     examples = []
-    eval_examples = {}
     process_text = process_text or (lambda text: text)
 
     for article in tqdm.tqdm(source['data']):
@@ -47,7 +46,7 @@ def process_file(filename, word_counter, char_counter, tokenizer, process_text=N
                     char_counter[char] += len(para['qas'])
             for qa in para['qas']:
                 total += 1
-                ques = process_text(qa["question"].replace("''", '" ').replace("``", '" '))
+                ques = process_text(qa['question'].replace("''", '" ').replace("``", '" '))
                 ques_tokens = tokenizer(ques)
                 ques_chars = [list(token) for token in ques_tokens]
                 for token in ques_tokens:
@@ -80,13 +79,66 @@ def process_file(filename, word_counter, char_counter, tokenizer, process_text=N
                     'id': total
                 }
                 examples.append(example)
-                eval_examples[total] = {
-                    'context': context,
-                    'spans': spans,
-                    'answers': answer_texts,
-                    'uuid': qa['id']
+    return examples
+
+
+def process_cmrc(filename, word_counter, char_counter, tokenizer):
+    source = utils.load_json(filename)
+    total = 0
+    examples = []
+
+    for para in tqdm.tqdm(source):
+            context = para['context_text']
+            context_tokens = tokenizer(context)
+            context_chars = [list(token) for token in context_tokens]
+            spans = convert_idx(context, context_tokens)
+            for token in context_tokens:
+                word_counter[token] += len(para['qas'])
+                for char in token:
+                    char_counter[char] += len(para['qas'])
+            for qa in para['qas']:
+                total += 1
+                ques = qa['query_text']
+                ques_tokens = tokenizer(ques)
+                ques_chars = [list(token) for token in ques_tokens]
+                for token in ques_tokens:
+                    word_counter[token] += 1
+                    for char in token:
+                        char_counter[char] += 1
+                y1s, y2s = [], []
+                answer_texts = []
+                for answer_text in qa['answers']:
+                    answer_text = str(answer_text)
+                    if answer_text.endswith('。'):
+                        answer_text = answer_text[:-1]
+                    try:
+                        answer_start = context.index(answer_text)
+                    except:
+                        continue
+                    answer_end = answer_start + len(answer_text)
+                    answer_texts.append(answer_text)
+                    answer_span = []
+                    for idx, span in enumerate(spans):
+                        if not (answer_end <= span[0] or answer_start >= span[1]):
+                            answer_span.append(idx)
+                    if not answer_span:
+                        print('{} in ({}, {}) out of context boundary'.format(answer_text, answer_start, answer_end))
+                    y1, y2 = answer_span[0], answer_span[-1]
+                    y1s.append(y1)
+                    y2s.append(y2)
+                if not y1s or not y2s:
+                    continue
+                example = {
+                    'context_tokens': context_tokens,
+                    'context_chars': context_chars,
+                    'question_tokens': ques_tokens,
+                    'question_chars': ques_chars,
+                    'y1s': y1s,
+                    'y2s': y2s,
+                    'id': total
                 }
-    return examples, eval_examples
+                examples.append(example)
+    return examples
 
 
 def get_embedding(counter, limit=-1, emb_file=None, vec_size=None, token2idx_dict=None):
@@ -126,11 +178,10 @@ if __name__ == '__main__':
     word_counter, char_counter = Counter(), Counter()
     utils.rmdir('./generate')
     if opts.dataset == 'squad':
-        train_examples, train_eval = process_file(opts.squad_train_file, word_counter, char_counter, word_tokenize)
-        dev_examples, dev_eval = process_file(opts.squad_dev_file, word_counter, char_counter, word_tokenize)
-        test_examples, test_eval = process_file(opts.squad_test_file, word_counter, char_counter, word_tokenize)
-    elif opts.dataset == 'drcd':
-        simplify = None
+        train_examples = process_file(opts.squad_train_file, word_counter, char_counter, word_tokenize)
+        dev_examples = process_file(opts.squad_dev_file, word_counter, char_counter, word_tokenize)
+        test_examples = process_file(opts.squad_test_file, word_counter, char_counter, word_tokenize)
+    elif opts.dataset in ['drcd', 'cmrc']:
         if opts.cws == 'ltp':
             import pyltp
             segmentor = pyltp.Segmentor()
@@ -142,16 +193,20 @@ if __name__ == '__main__':
             def tokenize(text):
                 s = SnowNLP(text)
                 return s.words
-            simplify = lambda text: SnowNLP(text).han
         elif opts.cws == 'jieba':
             import jieba
             def tokenize(text):
                 return list(jieba.cut(text))
         else:
             tokenize = list
-        train_examples, train_eval = process_file(opts.drcd_train_file, word_counter, char_counter, tokenize, simplify)
-        dev_examples, dev_eval = process_file(opts.drcd_dev_file, word_counter, char_counter, tokenize, simplify)
-        test_examples, test_eval = process_file(opts.drcd_test_file, word_counter, char_counter, tokenize, simplify)
+        if opts.dataset == 'drcd':
+            train_examples = process_file(opts.drcd_train_file, word_counter, char_counter, tokenize)
+            dev_examples = process_file(opts.drcd_dev_file, word_counter, char_counter, tokenize)
+            test_examples = process_file(opts.drcd_test_file, word_counter, char_counter, tokenize)
+        elif opts.dataset == 'cmrc':
+            train_examples = process_cmrc(opts.cmrc_train_file, word_counter, char_counter, tokenize)
+            dev_examples = process_cmrc(opts.cmrc_dev_file, word_counter, char_counter, tokenize)
+            test_examples = process_cmrc(opts.cmrc_test_file, word_counter, char_counter, tokenize)
 
     word_emb_mat, word2idx_dict = get_embedding(word_counter, emb_file=opts.glove_word_emb_file if opts.dataset == 'squad' else None, vec_size=opts.word_dim)
     char_emb_mat, char2idx_dict = get_embedding(char_counter, vec_size=opts.char_dim)
@@ -159,11 +214,8 @@ if __name__ == '__main__':
     assert len(char_emb_mat) == len(char2idx_dict)
 
     utils.save_json(opts.train_example_file, train_examples)
-    utils.save_json(opts.train_eval_file, train_eval)
     utils.save_json(opts.dev_example_file, dev_examples)
-    utils.save_json(opts.dev_eval_file, dev_eval)
     utils.save_json(opts.test_example_file, test_examples)
-    utils.save_json(opts.test_eval_file, test_eval)
 
     utils.save_json(opts.word_emb_file, word_emb_mat)
     utils.save_json(opts.char_emb_file, char_emb_mat)

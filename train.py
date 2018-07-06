@@ -55,7 +55,7 @@ def train(steps=400, evaluate_size=None):
         last_accuracy = 0
     while True:
         run_epoch(opt, model, feeder, optimizer, steps)
-        em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, size=evaluate_size)
+        em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.validate_batch_size, size=evaluate_size)
         if accuracy > last_accuracy:
             models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy

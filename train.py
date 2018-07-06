@@ -5,6 +5,7 @@ import models
 import random
 import func
 import utils
+from torch.nn.utils import clip_grad_norm_
 
 
 def make_options():
@@ -27,6 +28,7 @@ def run_epoch(opt, model, feeder, optimizer, batches):
         loss = (criterion(logits1, t1) + criterion(logits2, t2)).mean()
         optimizer.zero_grad()
         loss.backward()
+        clip_grad_norm_(model.parameters(), opt.max_grad_norm)
         optimizer.step()
         print('------ITERATION {}, {}/{}, epoch: {:>.2F}% loss: {:>.4F}'.format(feeder.iteration, feeder.cursor, feeder.size, 100.0*nbatch/batches, loss.tolist()))
 

@@ -13,6 +13,7 @@ def train_opts(parser):
     group.add_argument('-batch_size', type=int, default=32)
     group.add_argument('-learning_rate', type=float, default=0.001)
     group.add_argument('-dropout', type=float, default=0.3)
+    group.add_argument('-max_grad_norm', type=float, default=5.0)
     group.add_argument('-summary_file', type=str, default='./output/summary.txt')
 
 

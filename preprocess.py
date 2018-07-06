@@ -28,7 +28,7 @@ def convert_idx(text, tokens):
     return spans
 
 
-def process_squad(filename, word_counter, char_counter):
+def process_file(filename, word_counter, char_counter, tokenizer):
     source = utils.load_json(filename)
     total = 0
     examples = []
@@ -36,7 +36,7 @@ def process_squad(filename, word_counter, char_counter):
     for article in tqdm.tqdm(source['data']):
         for para in article['paragraphs']:
             context = para['context'].replace("''", '" ').replace("``", '" ')
-            context_tokens = word_tokenize(context)
+            context_tokens = tokenizer(context)
             context_chars = [list(token) for token in context_tokens]
             spans = convert_idx(context, context_tokens)
             for token in context_tokens:
@@ -46,7 +46,7 @@ def process_squad(filename, word_counter, char_counter):
             for qa in para['qas']:
                 total += 1
                 ques = qa["question"].replace("''", '" ').replace("``", '" ')
-                ques_tokens = word_tokenize(ques)
+                ques_tokens = tokenizer(ques)
                 ques_chars = [list(token) for token in ques_tokens]
                 for token in ques_tokens:
                     word_counter[token] += 1
@@ -120,12 +120,17 @@ def make_options():
 if __name__ == '__main__':
     opts = make_options()
     word_counter, char_counter = Counter(), Counter()
+    utils.rmdir('./generate')
+    if opts.dataset == 'squad':
+        train_examples, train_eval = process_file(opts.squad_train_file, word_counter, char_counter, word_tokenize)
+        dev_examples, dev_eval = process_file(opts.squad_dev_file, word_counter, char_counter, word_tokenize)
+        test_examples, test_eval = process_file(opts.squad_test_file, word_counter, char_counter, word_tokenize)
+    elif opts.dataset == 'drcd':
+        train_examples, train_eval = process_file(opts.drcd_train_file, word_counter, char_counter, list)
+        dev_examples, dev_eval = process_file(opts.drcd_dev_file, word_counter, char_counter, list)
+        test_examples, test_eval = process_file(opts.drcd_test_file, word_counter, char_counter, list)
 
-    train_examples, train_eval = process_squad(opts.squad_train_file, word_counter, char_counter)
-    dev_examples, dev_eval = process_squad(opts.squad_dev_file, word_counter, char_counter)
-    test_examples, test_eval = process_squad(opts.squad_test_file, word_counter, char_counter)
-
-    word_emb_mat, word2idx_dict = get_embedding(word_counter, emb_file=opts.glove_word_emb_file, vec_size=opts.word_dim)
+    word_emb_mat, word2idx_dict = get_embedding(word_counter, emb_file=opts.glove_word_emb_file if opts.dataset == 'squad' else None, vec_size=opts.word_dim)
     char_emb_mat, char2idx_dict = get_embedding(char_counter, vec_size=opts.char_dim)
     assert len(word_emb_mat) == len(word2idx_dict)
     assert len(char_emb_mat) == len(char2idx_dict)
@@ -141,7 +146,14 @@ if __name__ == '__main__':
     utils.save_json(opts.char_emb_file, char_emb_mat)
     utils.save_json(opts.w2i_file, word2idx_dict)
     utils.save_json(opts.c2i_file, char2idx_dict)
-
+    utils.save_json(opts.meta_file, {
+        'dataset': opts.dataset,
+        'num_train': len(train_examples),
+        'num_dev': len(dev_examples),
+        'num_test': len(test_examples),
+        'word_vocab_size': len(word2idx_dict),
+        'char_vocab_size': len(char2idx_dict)
+    })
     print('vocab size: {}/{}'.format(len(word2idx_dict), len(char2idx_dict)))
     print('samples: {}/{}/{}'.format(len(train_examples), len(dev_examples), len(test_examples)))
     print('preprocess done.')

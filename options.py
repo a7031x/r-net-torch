@@ -34,6 +34,9 @@ def preprocess_opts(parser):
     group.add_argument('-squad_train_file', type=str, default='./data/squad/train-v1.1.json')
     group.add_argument('-squad_dev_file', type=str, default='./data/squad/dev-v1.1.json')
     group.add_argument('-squad_test_file', type=str, default='./data/squad/dev-v1.1.json')
+    group.add_argument('-drcd_train_file', type=str, default='./data/drcd/DRCD_training.json')
+    group.add_argument('-drcd_dev_file', type=str, default='./data/drcd/DRCD_dev.json')
+    group.add_argument('-drcd_test_file', type=str, default='./data/drcd/DRCD_dev.json')
     group.add_argument('-glove_word_emb_file', type=str, default='./data/glove/glove.840B.300d.txt')
 
 
@@ -45,7 +48,9 @@ def data_opts(parser):
     group.add_argument('-char_emb_file', type=str, default='./generate/emb.char.json')
     group.add_argument('-w2i_file', type=str, default='./generate/w2i.json')
     group.add_argument('-c2i_file', type=str, default='./generate/c2i.json')
-    group.add_argument('-max_passage_tokens', type=int, default=400)
+    group.add_argument('-dataset', type=str, default='drcd')
+    group.add_argument('-meta_file', type=str, default='./generate/meta.json')
+    group.add_argument('-max_passage_tokens', type=int, default=1000)
 
     group.add_argument('-train_example_file', type=str, default='./generate/example.train.json')
     group.add_argument('-dev_example_file', type=str, default='./generate/example.dev.json')

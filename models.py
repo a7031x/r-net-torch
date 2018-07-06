@@ -173,7 +173,10 @@ def build_train_model(opt, dataset=None):
 def build_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = Model()
-    model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
+    if opt.dataset == 'squad':
+        model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
+    else:
+        model.without_embedding(len(dataset.word_emb), opt.word_dim, len(dataset.char_emb), opt.char_dim)
     model.initialize(opt.char_hidden_size, opt.encoder_hidden_size, opt.rnn_type, opt.dropout)
     if func.gpu_available():
         model = model.cuda()

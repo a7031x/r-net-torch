@@ -164,7 +164,7 @@ class PositionLoss(nn.Module):
 def build_train_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = build_model(opt, dataset)
-    feeder = data.TrainFeeder(dataset, opt.batch_size)
+    feeder = data.TrainFeeder(dataset, opt.batch_size, opt.char_limit)
     optimizer = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=opt.learning_rate)
     feeder.prepare('train')
     return model, optimizer, feeder

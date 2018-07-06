@@ -50,12 +50,12 @@ def train(steps=400, evaluate_size=None):
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     log = Logger(opt)
     if ckpt is not None:
-        _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, size=evaluate_size)
+        _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, char_limit=opt.char_limit, size=evaluate_size)
     else:
         last_accuracy = 0
     while True:
         run_epoch(opt, model, feeder, optimizer, steps)
-        em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.validate_batch_size, size=evaluate_size)
+        em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.validate_batch_size, char_limit=opt.char_limit, size=evaluate_size)
         if accuracy > last_accuracy:
             models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy

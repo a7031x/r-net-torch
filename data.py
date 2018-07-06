@@ -38,8 +38,9 @@ class Dataset(object):
 
 
 class Feeder(object):
-    def __init__(self, dataset):
+    def __init__(self, dataset, char_limit):
         self.dataset = dataset
+        self.char_limit = char_limit
 
 
     def word_to_id(self, word):
@@ -54,7 +55,7 @@ class Feeder(object):
 
 
     def word_to_cids(self, word):
-        return [self.char_to_id(char) for char in word][:16]
+        return [self.char_to_id(char) for char in word][:self.char_limit]
 
 
     def sent_to_ids(self, sent):
@@ -89,8 +90,8 @@ class Feeder(object):
 
 
 class TrainFeeder(Feeder):
-    def __init__(self, dataset, batch_size):
-        super(TrainFeeder, self).__init__(dataset)
+    def __init__(self, dataset, batch_size, char_limit):
+        super(TrainFeeder, self).__init__(dataset, char_limit)
         self.batch_size = batch_size
 
 
@@ -214,7 +215,7 @@ if __name__ == '__main__':
 
     print('examples: {}/{}/{}'.format(len(dataset.train_set), len(dataset.dev_set), len(dataset.test_set)))
     print('vocab_size: {}/{}'.format(len(dataset.word_emb_file), len(dataset.char_emb_file)))
-    feeder = TrainFeeder(dataset, 64)
+    feeder = TrainFeeder(dataset, 64, 16)
     feeder.prepare('train')
     ids, c, q, ch, qh, y1, y2 = feeder.next(opt.batch_size)
     assert len(ids) == opt.batch_size

@@ -181,28 +181,39 @@ class RNNEncoder(EncoderBase):
         return sorted_data, sorted_lengths
 
 
+    def pad_zeros(self, value, full_size, dim=0):
+        if full_size == value.shape[0]:
+            return value
+        padding = [0] * (value.dim() * 2)
+        padding[-dim*2-1] = full_size - value.shape[dim]
+        padded_value = nn.functional.pad(value, padding)
+        return padded_value
+
+
+    def forward_ordered(self, src, lengths, encoder_state):
+        full_batch_size = lengths.shape[0]
+        valid_batch_size = (lengths != 0).sum()
+        packed_emb = pack(src[:valid_batch_size], lengths[:valid_batch_size], batch_first=self.rnn.batch_first)
+        memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
+        memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
+        encoder_final = tuple([self.pad_zeros(s, full_batch_size, dim=1) for s in encoder_final]) if isinstance(encoder_final, tuple) else self.pad_zeros(encoder_final, full_batch_size, dim=1)
+        memory_bank = self.pad_zeros(memory_bank, full_batch_size)
+        return memory_bank, encoder_final
+
+
     def forward(self, src, lengths, encoder_state=None, ordered=False):
         if lengths is not None and lengths.max() != lengths.min():
-            padded_lengths = lengths + lengths.eq(0).long()
-            mask = (lengths != 0).float()
-            output_mask = mask.view(-1, 1, 1)
-            state_mask = mask.view(1, -1, 1)
             if ordered:
-                packed_emb = pack(src, padded_lengths, batch_first=self.rnn.batch_first)
-                memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
-                memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0] * output_mask
-                encoder_final = [s * state_mask for s in encoder_final] if self.type == 'lstm' else encoder_final * state_mask
+                return self.forward_ordered(src, lengths, encoder_state)
             else:
-                sorted_lengths, perm_idx = padded_lengths.sort(descending=True)
+                sorted_lengths, perm_idx = lengths.sort(descending=True)
                 sorted_src = src[perm_idx]
                 if encoder_state is not None:
                     encoder_state = encoder_state[perm_idx]
-                packed_emb = pack(sorted_src, sorted_lengths, batch_first=self.rnn.batch_first)
-                memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
-                memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
+                memory_bank, encoder_final = self.forward_ordered(sorted_src, sorted_lengths, encoder_state)
                 _, odx = perm_idx.sort()
-                memory_bank = memory_bank[odx] * output_mask
-                encoder_final = [s[:, odx, :] * state_mask for s in encoder_final] if self.type == 'lstm' else encoder_final[:, odx, :] * state_mask
+                memory_bank = memory_bank[odx]
+                encoder_final = tuple([s[:, odx, :] for s in encoder_final]) if isinstance(encoder_final, tuple) else encoder_final[:, odx, :]
         else:
             memory_bank, encoder_final = self.rnn(src, encoder_state)
         return memory_bank, encoder_final
@@ -221,28 +232,33 @@ if __name__ == '__main__':
     seq0 = [1, 2, 3]
     seq1 = [4, 2, 0]
     seq2 = [3, 0, 0]
-    s0 = torch.tensor([seq0, seq1, seq2])
-    l0 = torch.tensor([3, 2, 1])
-    s1 = torch.tensor([seq1, seq2, seq0])
-    l1 = torch.tensor([2, 1, 3])
+    seq3 = [0, 0, 0]
+    s0 = torch.tensor([seq0, seq1, seq2, seq3])
+    l0 = torch.tensor([3, 2, 1, 0])
+    s1 = torch.tensor([seq3, seq1, seq2, seq0])
+    l1 = torch.tensor([0, 2, 1, 3])
 
 
     for type in ['lstm', 'gru']:
         rnn = RNNEncoder(input_size=3, num_layers=3, hidden_size=4, bidirectional=True, type=type)
         m0, t0 = rnn(embeddings(s0), l0, ordered=True)
         m1, t1 = rnn(embeddings(s1), l1, ordered=False)
-        d0 = m1[2] - m0[0]
-        d1 = m1[0] - m0[1]
-        d2 = m1[1] - m0[2]
+        d0 = m1[3] - m0[0]
+        d1 = m1[1] - m0[1]
+        d2 = m1[2] - m0[2]
+        d3 = m1[0] - m0[3]
         assert d0.abs().sum().tolist() == 0
         assert d1.abs().sum().tolist() == 0
         assert d2.abs().sum().tolist() == 0
+        assert d3.abs().sum().tolist() == 0
         if not isinstance(t0, tuple):
             t0 = (t0,)
             t1 = (t1,)
-        d0 = t1[0][:,2,:] - t0[0][:,0,:]
-        d1 = t1[-1][:,0] - t0[-1][:,1]
-        d2 = t1[0][:,1] - t0[0][:,2,:]
+        d0 = t1[0][:,3,:] - t0[0][:,0,:]
+        d1 = t1[-1][:,1] - t0[-1][:,1]
+        d2 = t1[0][:,2] - t0[0][:,2,:]
+        d3 = t1[-1][:,0] - t0[-1][:,3]
         assert d0.abs().sum().tolist() == 0
         assert d1.abs().sum().tolist() == 0
-        assert d2.abs().sum().tolist() == 0
+        assert d2.abs().sum() == 0
+        assert d3.abs().sum() == 0

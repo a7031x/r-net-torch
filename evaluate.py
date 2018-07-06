@@ -69,10 +69,10 @@ def evaluate_batch(feeder, ids, y1p, y2p):
     return total_em, total_f1, total
 
 
-def evaluate_accuracy(model, dataset, batch_size=32, char_limit=16, size=None, output_file='./output/dev.txt'):
+def evaluate_accuracy(model, dataset, batch_size=32, char_limit=16, size=None, output_file='./output/evaluate.txt', profile='dev'):
     model.eval()
     feeder = data.TrainFeeder(dataset, batch_size, char_limit)
-    feeder.prepare('dev')
+    feeder.prepare(profile)
     size = size or feeder.size
     feeder.sort(size)
     lines = []
@@ -100,3 +100,28 @@ def evaluate_accuracy(model, dataset, batch_size=32, char_limit=16, size=None, o
     utils.write_all_lines(output_file, lines)
     print('evauation finished with ' + message)
     return exact_match, f1
+
+
+if __name__ == '__main__':
+    import models
+    import options
+    import argparse
+
+    def make_options():
+        parser = argparse.ArgumentParser(description='train.py')
+        options.model_opts(parser)
+        options.evaluate_opts(parser)
+        options.data_opts(parser)
+        return parser.parse_args()
+
+    opt = make_options()
+    model, _ = models.load_or_create_models(opt, False)
+    dataset = data.Dataset(opt)
+    em, f1 = evaluate_accuracy(
+        model,
+        dataset,
+        batch_size=opt.batch_size,
+        char_limit=opt.char_limit,
+        profile='test',
+        output_file=opt.output_file)
+    print('evaluation finished with EM: {}, F1: {}.'.format(em, f1))

@@ -36,6 +36,17 @@
             "args": [
                 "-char_limit", "16"
             ]
+        },
+        {
+            "name": "evaluate chinese",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/evaluate.py",
+            "args": [
+                "-char_limit", "6",
+                "-batch_size", "30",
+                "-max_passage_tokens", "1000"
+            ]
         }
     ]
 }

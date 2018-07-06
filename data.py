@@ -34,7 +34,7 @@ class Dataset(object):
 
 
     def filter(self, opt, dataset):
-        return [e for e in dataset if len(e['context_tokens']) <= opt.max_passage_tokens]
+        return [e for e in dataset if len(e['context_tokens']) <= opt.max_passage_tokens and e['question_tokens']]
 
 
 class Feeder(object):

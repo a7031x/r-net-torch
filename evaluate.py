@@ -59,7 +59,7 @@ def evaluate_em_f1(feeder, tokens, predict_start, predict_end, target_starts, ta
 def evaluate_batch(feeder, ids, y1p, y2p):
     total_em, total_f1, total = 0, 0, 0
     for id, predict_start, predict_end in zip(ids, y1p, y2p):
-        eval_example = feeder.dataset.dev_eval[id]
+        eval_example = feeder.eval[id]
         tokens = eval_example['context_tokens']
         target_starts, target_ends = eval_example['y1s'], eval_example['y2s']
         em, f1 = evaluate_em_f1(feeder, tokens, predict_start, predict_end, target_starts, target_ends)

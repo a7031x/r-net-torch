@@ -101,8 +101,10 @@ class TrainFeeder(Feeder):
             self.shuffle_index()
         elif type == 'dev':
             self.prepare_data(self.dataset.dev_set)
+            self.eval = self.dataset.dev_eval
         else:
             self.prepare_data(self.dataset.test_set)
+            self.eval = self.dataset.test_eval
         self.cursor = 0
         self.iteration = 1
 

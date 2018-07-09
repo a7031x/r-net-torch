@@ -45,7 +45,7 @@ class Logger(object):
         utils.write_all_lines(self.output_file, self.lines)
 
 
-def train(steps=400, evaluate_size=None):
+def train(steps=200, evaluate_size=None):
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     log = Logger(opt)

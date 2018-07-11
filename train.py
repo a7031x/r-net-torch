@@ -21,9 +21,9 @@ def run_epoch(opt, model, feeder, optimizer, batches):
     nbatch = 0
     criterion = models.make_loss_compute()
     while nbatch < batches:
-        _, cs, qs, chs, qhs, y1s, y2s = feeder.next(opt.batch_size)
+        _, cs, qs, chs, qhs, y1s, y2s, ct, qt = feeder.next(opt.batch_size)
         nbatch += 1
-        logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
+        logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs), ct, qt)
         t1, t2 = func.tensor(y1s), func.tensor(y2s)
         loss = (criterion(logits1, t1) + criterion(logits2, t2)).mean()
         optimizer.zero_grad()

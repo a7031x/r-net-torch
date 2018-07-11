@@ -6,6 +6,7 @@ def model_opts(parser):
     group.add_argument('-encoder_hidden_size', type=int, default=75)
     group.add_argument('-rnn_type', type=str, default='gru')
     group.add_argument('-ckpt_path', type=str, default='./checkpoint/model.pt')
+    group.add_argument('-with_elmo', type=int, default=1)
 
 
 def train_opts(parser):

@@ -6,6 +6,7 @@ import rnn
 import utils
 import os
 import layers
+from contextualized_embedding import ElmoEmbedding
 
 class Model(nn.Module):
     def without_embedding(self, word_vocab_size, word_dim, char_vocab_size, char_dim):
@@ -21,8 +22,9 @@ class Model(nn.Module):
         self.char_embedding.padding_idx = data.NULL_ID
 
 
-    def with_contextualized_embedding(self, word_embedding, word_dim, char_vocab_size, char_dim):
-        self.word_embedding = word_embedding
+    def with_contextualized_embedding(self, word_dim, char_vocab_size, char_dim):
+        self.elmo = ElmoEmbedding()
+        self.dense_word = nn.Linear(self.elmo.dim, word_dim)
         self.word_dim = word_dim
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 
@@ -37,14 +39,14 @@ class Model(nn.Module):
         encoder_layers = 3
         #char encoding
         self.char_rnn = rnn.RNNEncoder(
-            input_size=self.char_embedding.weight.shape[1],
+            input_size=self.word_dim,
             num_layers=1,
             hidden_size=char_hidden_size,
             bidirectional=True,
             type='gru')
         '''
         self.char_rnn = rnn.StackedBRNN(
-            input_size=self.char_embedding.weight.shape[1],
+            input_size=self.word_dim,
             hidden_size=char_hidden_size,
             num_layers=1,
             rnn_type=nn.GRU,
@@ -103,7 +105,7 @@ class Model(nn.Module):
             dropout=dropout)
 
 
-    def forward(self, c, q, ch, qh):
+    def forward(self, c, q, ch, qh, ct=None, qt=None):
         n, pl, _ = ch.shape
 
         #char encoding
@@ -124,8 +126,8 @@ class Model(nn.Module):
         qh_emb = torch.cat([state[0], state[1]], -1).view(n, ql, -1)
 
         #encoding
-        c_emb = self.word_embedding(c)
-        q_emb = self.word_embedding(q)
+        c_emb = self.convert_word_embedding(ct, c)
+        q_emb = self.convert_word_embedding(qt, q)
         c_emb = torch.cat([c_emb, ch_emb], -1)#[n, pl, dw+dc=500]
         q_emb = torch.cat([q_emb, qh_emb], -1)#[n, ql, dw+dc=500]
 
@@ -145,6 +147,14 @@ class Model(nn.Module):
         init = self.summary(q[:,:,-2*self.encoder_hidden_size:], q_mask)
         logits1, logits2 = self.pointer_net(init, match, c_mask)
         return logits1, logits2
+
+
+    def convert_word_embedding(self, text, ids):
+        if hasattr(self, 'elmo'):
+            emb = self.elmo.convert(text).transpose(0, 1)
+            return self.dense_word(emb)
+        else:
+            return self.word_embedding(ids)
 
 
     def calc_span(self, logits1, logits2):
@@ -182,7 +192,10 @@ def build_model(opt, dataset=None):
     dataset = dataset or data.Dataset(opt)
     model = Model()
     if opt.dataset == 'squad':
-        model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
+        if opt.with_elmo == 1:
+            model.with_contextualized_embedding(opt.word_dim, len(dataset.char_emb), opt.char_dim)
+        else:
+            model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
     else:
         model.without_embedding(len(dataset.word_emb), opt.word_dim, len(dataset.char_emb), opt.char_dim)
     model.initialize(opt.char_hidden_size, opt.encoder_hidden_size, opt.rnn_type, opt.dropout)

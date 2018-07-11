@@ -86,7 +86,7 @@ class Feeder(object):
         #y1, y2 = [0.0] * len(c), [0.0] * len(c)
         #y1[start] = y2[end] = 1.0
         y1, y2 = start, end
-        return example['id'], c, q, ch, qh, y1, y2
+        return example['id'], c, q, ch, qh, y1, y2, context, question
 
 
 class TrainFeeder(Feeder):
@@ -155,7 +155,7 @@ class TrainFeeder(Feeder):
         batch = [self.data[idx] for idx in batch]
         ids, cs, qs, chs, qhs, y1s, y2s = [], [], [], [], [], [], []
         for example in batch:
-            id, c, q, ch, qh, y1, y2 = self.parse_example(example)
+            id, c, q, ch, qh, y1, y2, ct, qt = self.parse_example(example)
             ids.append(id)
             cs.append(c)
             qs.append(q)
@@ -164,7 +164,7 @@ class TrainFeeder(Feeder):
             y1s.append(y1)
             y2s.append(y2)
         self.cursor += size
-        return align(ids), align(cs), align(qs), align(chs), align(qhs), align(y1s), align(y2s)
+        return align(ids), align(cs), align(qs), align(chs), align(qhs), align(y1s), align(y2s), ct, qt
 
                 
 def align1d(value, mlen, fill=0):
@@ -219,5 +219,5 @@ if __name__ == '__main__':
     print('vocab_size: {}/{}'.format(len(dataset.word_emb_file), len(dataset.char_emb_file)))
     feeder = TrainFeeder(dataset, 64, 16)
     feeder.prepare('train')
-    ids, c, q, ch, qh, y1, y2 = feeder.next(opt.batch_size)
+    ids, c, q, ch, qh, y1, y2, ct, qt = feeder.next(opt.batch_size)
     assert len(ids) == opt.batch_size

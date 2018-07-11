@@ -16,7 +16,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/preprocess.py",
             "args": [
-                "-dataset", "drcd"
+                "-dataset", "squad"
             ]
         },
         {

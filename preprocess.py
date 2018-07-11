@@ -144,7 +144,7 @@ def process_cmrc(filename, word_counter, char_counter, tokenizer):
 def get_embedding(counter, limit=-1, emb_file=None, vec_size=None, token2idx_dict=None):
     embedding_dict = {}
     filtered_elements = [k for k, v in counter.items() if v > limit]
-    if emb_file is not None:
+    if emb_file is not None and os.path.isfile(emb_file):
         with open(emb_file, 'r', encoding='utf-8') as fh:
             for line in fh:
                 array = line.split()

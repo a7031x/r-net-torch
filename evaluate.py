@@ -78,8 +78,8 @@ def evaluate_accuracy(model, dataset, batch_size=32, char_limit=16, size=None, o
     lines = []
     total_em, total_f1, total = 0, 0, 0
     while feeder.cursor < size:
-        ids, cs, qs, chs, qhs, y1s, y2s = feeder.next(batch_size)
-        logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs))
+        ids, cs, qs, chs, qhs, y1s, y2s, ct, qt = feeder.next(batch_size)
+        logits1, logits2 = model(func.tensor(cs), func.tensor(qs), func.tensor(chs), func.tensor(qhs), ct, qt)
         y1p, y2p = model.calc_span(logits1, logits2)
         for pids, qids, lable_start, label_end, predict_start, predict_end in zip(cs, qs, y1s, y2s, y1p, y2p):
             lines.append('--------------------------------')

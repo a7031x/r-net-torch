@@ -11,12 +11,20 @@ class Model(nn.Module):
     def without_embedding(self, word_vocab_size, word_dim, char_vocab_size, char_dim):
         self.word_embedding = nn.Embedding(word_vocab_size, word_dim, padding_idx=data.NULL_ID)
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
+        self.word_dim = word_dim
 
 
     def with_embedding(self, word_mat, char_mat):
         self.word_embedding = nn.Embedding.from_pretrained(word_mat, freeze=True)
+        self.word_dim = self.word_embedding.weight.shape[1]
         self.char_embedding = nn.Embedding.from_pretrained(char_mat, freeze=False)
         self.char_embedding.padding_idx = data.NULL_ID
+
+
+    def with_contextualized_embedding(self, word_embedding, word_dim, char_vocab_size, char_dim):
+        self.word_embedding = word_embedding
+        self.word_dim = word_dim
+        self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 
 
     def initialize(self, char_hidden_size, encoder_hidden_size, rnn_type, dropout):
@@ -46,7 +54,7 @@ class Model(nn.Module):
         '''
         #encoding
         self.encoder = rnn.StackedBRNN(
-            input_size=self.word_embedding.weight.shape[1]+char_hidden_size,
+            input_size=self.word_dim+char_hidden_size,
             hidden_size=encoder_hidden_size,
             num_layers=encoder_layers,
             rnn_type=self.rnn_type,

@@ -31,15 +31,17 @@ class ElmoEmbedding:
         mlen = max([e.shape[0] for e in embeddings])
         embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]
         embeddings = torch.stack(embeddings)
-        return func.tensor(embeddings)
+        embeddings = func.tensor(embeddings)
+        embeddings.requires_grad = False
+        return embeddings
 
 
     def make_key(self, sent):
-        return ' '.join(sent)
+        return '$$'.join(sent)
 
 
     def make_sentence(self, key):
-        return key.split(' ')
+        return key.split('$$')
 
 
     def convert_impl(self, sentences):

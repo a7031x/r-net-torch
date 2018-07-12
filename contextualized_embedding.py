@@ -23,10 +23,11 @@ class ElmoEmbedding:
             if key not in self.cache:
                 not_hit.add(key)
         not_hit = list(not_hit)
-        embeddings, masks = self.convert_impl([self.make_sentence(key) for key in not_hit])
-        for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
-            embedding = embedding[:mask.sum()]
-            self.cache[key] = embedding.cpu().detach()
+        if not_hit:
+            embeddings, masks = self.convert_impl([self.make_sentence(key) for key in not_hit])
+            for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
+                embedding = embedding[:mask.sum()]
+                self.cache[key] = embedding.cpu().detach()
         embeddings = [self.cache[self.make_key(sent)] for sent in sentences]
         mlen = max([e.shape[0] for e in embeddings])
         embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]

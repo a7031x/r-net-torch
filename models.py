@@ -24,7 +24,19 @@ class Model(nn.Module):
 
     def with_contextualized_embedding(self, word_dim, char_vocab_size, char_dim):
         self.elmo = ElmoEmbedding()
-        self.dense_word = nn.Linear(self.elmo.dim, word_dim)
+        self.dense_word = nn.Sequential()
+        dim = self.elmo.dim
+        while True:
+            dim = dim // 2
+            if dim < word_dim:
+                break
+            linear = nn.Linear(dim*2, dim)
+            relu = nn.LeakyReLU(0.1)
+            norm = nn.LayerNorm(dim)
+            self.dense_word.add_module('linear{}'.format(dim), linear)
+            self.dense_word.add_module('relu{}'.format(dim), relu)
+            self.dense_word.add_module('norm{}'.format(dim), norm)
+        self.dense_word.add_module('final', nn.Linear(dim*2, word_dim, bias=False))
         self.word_dim = word_dim
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 

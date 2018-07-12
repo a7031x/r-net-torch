@@ -29,7 +29,7 @@ class ElmoEmbedding:
 
     def load(self):
         if os.path.isfile(self.save_path):
-            with open(self.save_path, 'r') as file:
+            with open(self.save_path, 'rb') as file:
                 m = pickle.load(file)
         else:
             m = {}

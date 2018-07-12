@@ -1,4 +1,13 @@
 import utils
+import torch
+import torch.nn as nn
 
-json = utils.load_json('./data/cmrc/cmrc2018_dev.json')
-print(json)
+a = [
+    [1,2,3,4],
+    [-2,-4,-6,-8]
+]
+a = torch.tensor(a).float()
+norm = nn.LayerNorm(4)
+b = norm(a)
+
+print(b.tolist())

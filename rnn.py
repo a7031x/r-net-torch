@@ -181,23 +181,14 @@ class RNNEncoder(EncoderBase):
         return sorted_data, sorted_lengths
 
 
-    def pad_zeros(self, value, full_size, dim=0):
-        if full_size == value.shape[0]:
-            return value
-        padding = [0] * (value.dim() * 2)
-        padding[-dim*2-1] = full_size - value.shape[dim]
-        padded_value = nn.functional.pad(value, padding)
-        return padded_value
-
-
     def forward_ordered(self, src, lengths, encoder_state):
         full_batch_size = lengths.shape[0]
         valid_batch_size = (lengths != 0).sum()
         packed_emb = pack(src[:valid_batch_size], lengths[:valid_batch_size], batch_first=self.rnn.batch_first)
         memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
         memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
-        encoder_final = tuple([self.pad_zeros(s, full_batch_size, dim=1) for s in encoder_final]) if isinstance(encoder_final, tuple) else self.pad_zeros(encoder_final, full_batch_size, dim=1)
-        memory_bank = self.pad_zeros(memory_bank, full_batch_size)
+        encoder_final = tuple([func.pad_zeros(s, full_batch_size, dim=1) for s in encoder_final]) if isinstance(encoder_final, tuple) else self.pad_zeros(encoder_final, full_batch_size, dim=1)
+        memory_bank = func.pad_zeros(memory_bank, full_batch_size)
         return memory_bank, encoder_final
 
 

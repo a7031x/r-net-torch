@@ -2,6 +2,7 @@ from allennlp.modules.elmo import Elmo, batch_to_ids
 import func
 import torch
 
+
 options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
 weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
 
@@ -12,14 +13,42 @@ class ElmoEmbedding:
         if func.gpu_available():
             self.elmo = self.elmo.cuda()
         self.elmo.eval()
+        self.cache = {}
 
 
     def convert(self, sentences):
+        not_hit = set()
+        for sent in sentences:
+            key = self.make_key(sent)
+            if key not in self.cache:
+                not_hit.add(key)
+        not_hit = list(not_hit)
+        embeddings, masks = self.convert_impl([self.make_sentence(key) for key in not_hit])
+        for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
+            embedding = embedding[:mask.sum()]
+            self.cache[key] = embedding.cpu()
+        embeddings = [self.cache[self.make_key(sent)] for sent in sentences]
+        mlen = max([e.shape[0] for e in embeddings])
+        embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]
+        embeddings = torch.stack(embeddings)
+        return func.tensor(embeddings)
+
+
+    def make_key(self, sent):
+        return ' '.join(sent)
+
+
+    def make_sentence(self, key):
+        return key.split(' ')
+
+
+    def convert_impl(self, sentences):
         character_ids = func.tensor(batch_to_ids(sentences))
         m = self.elmo(character_ids)
         embeddings = m['elmo_representations']
         embeddings = torch.cat(embeddings, -1)
-        return embeddings
+        mask = m['mask']
+        return embeddings, mask
 
 
     @property

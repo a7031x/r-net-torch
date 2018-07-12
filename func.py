@@ -1,4 +1,6 @@
 import torch
+import torch.nn as nn
+
 
 def tensor(v):
     if isinstance(v, torch.Tensor):
@@ -16,6 +18,15 @@ def sequence_mask(lengths, max_len=None):
     batch_size = lengths.numel()
     max_len = max_len or lengths.max()
     return torch.arange(0, max_len).type_as(lengths).repeat(batch_size, 1).lt(lengths.unsqueeze(1))
+
+
+def pad_zeros(value, full_size, dim=0):
+    if full_size == value.shape[0]:
+        return value
+    padding = [0] * (value.dim() * 2)
+    padding[-dim*2-1] = full_size - value.shape[dim]
+    padded_value = nn.functional.pad(value, padding)
+    return padded_value
 
 
 def softmax_mask(val, mask):

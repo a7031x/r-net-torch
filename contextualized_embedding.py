@@ -26,13 +26,13 @@ class ElmoEmbedding:
         embeddings, masks = self.convert_impl([self.make_sentence(key) for key in not_hit])
         for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
             embedding = embedding[:mask.sum()]
-            self.cache[key] = embedding.cpu()
+            self.cache[key] = embedding.cpu().detach()
         embeddings = [self.cache[self.make_key(sent)] for sent in sentences]
         mlen = max([e.shape[0] for e in embeddings])
         embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]
         embeddings = torch.stack(embeddings)
         embeddings = func.tensor(embeddings)
-        embeddings.requires_grad = False
+        assert embeddings.requires_grad == False
         return embeddings
 
 

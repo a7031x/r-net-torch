@@ -2,7 +2,7 @@ import torch
 
 def tensor(v):
     if isinstance(v, torch.Tensor):
-        return v.cuda()
+        return v.cuda() if gpu_available() else v
     else:
         return torch.tensor(v).cuda() if gpu_available() else torch.tensor(v)
 

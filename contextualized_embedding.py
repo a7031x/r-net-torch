@@ -1,7 +1,9 @@
 from allennlp.modules.elmo import Elmo, batch_to_ids
 import func
 import torch
-
+import pickle
+import os
+import utils
 
 options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
 weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
@@ -13,7 +15,26 @@ class ElmoEmbedding:
         if func.gpu_available():
             self.elmo = self.elmo.cuda()
         self.elmo.eval()
-        self.cache = {}
+        self.save_path = './generate/elmo.pkl'
+        utils.ensure_folder(self.save_path)
+        self.load()
+
+
+    def save(self):
+        m = {k:v.tolist() for k,v in self.cache.items()}
+        with open(self.save_path, 'wb') as file:
+            pickle.dump(m, file)
+        self.saved_len = len(self.cache)
+
+
+    def load(self):
+        if os.path.isfile(self.save_path):
+            with open(self.save_path, 'r') as file:
+                m = pickle.load(file)
+        else:
+            m = {}
+        self.cache = {k:torch.tensor(v) for k,v in m.items()}
+        self.saved_len = len(self.cache)
 
 
     def convert(self, sentences):
@@ -28,6 +49,8 @@ class ElmoEmbedding:
             for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
                 embedding = embedding[:mask.sum()]
                 self.cache[key] = embedding.cpu().detach()
+            if len(self.cache) - self.saved_len >= 1000:
+                self.save()
         embeddings = [self.cache[self.make_key(sent)] for sent in sentences]
         mlen = max([e.shape[0] for e in embeddings])
         embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]

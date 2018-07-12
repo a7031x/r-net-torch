@@ -187,7 +187,7 @@ class RNNEncoder(EncoderBase):
         packed_emb = pack(src[:valid_batch_size], lengths[:valid_batch_size], batch_first=self.rnn.batch_first)
         memory_bank, encoder_final = self.rnn(packed_emb, encoder_state)
         memory_bank = unpack(memory_bank, batch_first=self.rnn.batch_first)[0]
-        encoder_final = tuple([func.pad_zeros(s, full_batch_size, dim=1) for s in encoder_final]) if isinstance(encoder_final, tuple) else self.pad_zeros(encoder_final, full_batch_size, dim=1)
+        encoder_final = tuple([func.pad_zeros(s, full_batch_size, dim=1) for s in encoder_final]) if isinstance(encoder_final, tuple) else func.pad_zeros(encoder_final, full_batch_size, dim=1)
         memory_bank = func.pad_zeros(memory_bank, full_batch_size)
         return memory_bank, encoder_final
 

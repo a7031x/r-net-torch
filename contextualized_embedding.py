@@ -1,5 +1,6 @@
 from allennlp.modules.elmo import Elmo, batch_to_ids
 import func
+import torch
 
 options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
 weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
@@ -17,7 +18,7 @@ class ElmoEmbedding:
         character_ids = func.tensor(batch_to_ids(sentences))
         m = self.elmo(character_ids)
         embeddings = m['elmo_representations']
-        embeddings = torch.cat(embeddings, -1).transpose(0, 1)
+        embeddings = torch.cat(embeddings, -1)
         return embeddings
 
 

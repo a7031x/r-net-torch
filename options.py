@@ -50,7 +50,7 @@ def data_opts(parser):
     group.add_argument('-char_emb_file', type=str, default='./generate/emb.char.json')
     group.add_argument('-w2i_file', type=str, default='./generate/w2i.json')
     group.add_argument('-c2i_file', type=str, default='./generate/c2i.json')
-    group.add_argument('-dataset', type=str, default='cmrc')
+    group.add_argument('-dataset', type=str, default='squad')
     group.add_argument('-meta_file', type=str, default='./generate/meta.json')
     group.add_argument('-max_passage_tokens', type=int, default=1000)
 

@@ -39,7 +39,7 @@ class Model(nn.Module):
         encoder_layers = 3
         #char encoding
         self.char_rnn = rnn.RNNEncoder(
-            input_size=self.word_dim,
+            input_size=self.char_embedding.weight.shape[1],
             num_layers=1,
             hidden_size=char_hidden_size,
             bidirectional=True,
@@ -151,7 +151,7 @@ class Model(nn.Module):
 
     def convert_word_embedding(self, text, ids):
         if hasattr(self, 'elmo'):
-            emb = self.elmo.convert(text).transpose(0, 1)
+            emb = self.elmo.convert(text)
             return self.dense_word(emb)
         else:
             return self.word_embedding(ids)

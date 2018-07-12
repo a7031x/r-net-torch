@@ -153,7 +153,7 @@ class TrainFeeder(Feeder):
         size = min(self.size - self.cursor, batch_size)
         batch = self.data_index[self.cursor:self.cursor+size]
         batch = [self.data[idx] for idx in batch]
-        ids, cs, qs, chs, qhs, y1s, y2s = [], [], [], [], [], [], []
+        ids, cs, qs, chs, qhs, y1s, y2s, cts, qts = [], [], [], [], [], [], [], [], []
         for example in batch:
             id, c, q, ch, qh, y1, y2, ct, qt = self.parse_example(example)
             ids.append(id)
@@ -163,8 +163,10 @@ class TrainFeeder(Feeder):
             qhs.append(qh)
             y1s.append(y1)
             y2s.append(y2)
+            cts.append(ct)
+            qts.append(qt)
         self.cursor += size
-        return align(ids), align(cs), align(qs), align(chs), align(qhs), align(y1s), align(y2s), ct, qt
+        return align(ids), align(cs), align(qs), align(chs), align(qhs), align(y1s), align(y2s), cts, qts
 
                 
 def align1d(value, mlen, fill=0):

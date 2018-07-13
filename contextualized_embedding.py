@@ -3,6 +3,7 @@ import func
 import torch
 import pickle
 import os
+import time
 import utils
 
 options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
@@ -15,26 +16,31 @@ class ElmoEmbedding:
         if func.gpu_available():
             self.elmo = self.elmo.cuda()
         self.elmo.eval()
-        self.save_path = './generate/elmo.pkl'
+        self.save_path = './generate/elmo{}.pkl'
         utils.ensure_folder(self.save_path)
+        self.partitions = 32
         self.load()
 
 
     def save(self):
-        m = {k:v.tolist() for k,v in self.cache.items()}
-        with open(self.save_path, 'wb') as file:
-            pickle.dump(m, file)
-        self.saved_len = len(self.cache)
+        if self.update_time == 0 or time.time() - self.update_time < 60000:
+            return
+        for partition in range(self.partitions):
+            m = {k:v.tolist() for k,v in self.cache.items() if sum(k.encode('utf8')) % self.partitions == partition}
+            with open(self.save_path.format(partition), 'wb') as file:
+                pickle.dump(m, file)
+        self.update_time = 0
 
 
     def load(self):
-        if os.path.isfile(self.save_path):
-            with open(self.save_path, 'rb') as file:
-                m = pickle.load(file)
-        else:
-            m = {}
-        self.cache = {k:torch.tensor(v) for k,v in m.items()}
-        self.saved_len = len(self.cache)
+        self.cache = {}
+        for partition in range(self.partitions):
+            path = self.save_path.format(partition)
+            if os.path.isfile(path):
+                with open(path, 'rb') as file:
+                    m = pickle.load(file)
+                    self.cache.update({k:torch.tensor(v) for k,v in m.items()})
+        self.update_time = 0
 
 
     def convert(self, sentences):
@@ -49,13 +55,13 @@ class ElmoEmbedding:
             for key, embedding, mask in zip(not_hit, torch.unbind(embeddings), torch.unbind(masks)):
                 embedding = embedding[:mask.sum()]
                 self.cache[key] = embedding.cpu().detach()
-            if len(self.cache) - self.saved_len >= 1000:
-                self.save()
+                self.update_time = time.time()
         embeddings = [self.cache[self.make_key(sent)] for sent in sentences]
         mlen = max([e.shape[0] for e in embeddings])
         embeddings = [func.pad_zeros(e, mlen, 0) for e in embeddings]
         embeddings = torch.stack(embeddings)
         embeddings = func.tensor(embeddings)
+        self.save()
         assert embeddings.requires_grad == False
         return embeddings
 

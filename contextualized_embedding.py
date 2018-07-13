@@ -29,7 +29,7 @@ class ElmoEmbedding:
         not_hit = set()
         for sent in sentences:
             key = self.make_key(sent)
-            if key not in self.cache.keys():
+            if key not in self.cache:
                 not_hit.add(key)
         not_hit = list(not_hit)
         if not_hit:

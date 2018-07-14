@@ -32,11 +32,12 @@ class Model(nn.Module):
                 break
             linear = nn.Linear(dim*2, dim)
             relu = nn.LeakyReLU(0.1)
-            norm = nn.LayerNorm(dim)
-            self.dense_word.add_module('linear{}'.format(dim), linear)
-            self.dense_word.add_module('relu{}'.format(dim), relu)
-            self.dense_word.add_module('norm{}'.format(dim), norm)
-        self.dense_word.add_module('final', nn.Linear(dim*2, word_dim, bias=False))
+            #norm = nn.LayerNorm(dim)
+            self.dense_word.add_module(f'linear{dim}', linear)
+            self.dense_word.add_module(f'relu{dim}', relu)
+            #self.dense_word.add_module('norm{}'.format(dim), norm)
+        self.dense_word.add_module(f'linear{word_dim}', nn.Linear(dim*2, word_dim))
+        self.dense_word.add_module('tanh', nn.Tanh())
         self.word_dim = word_dim
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 

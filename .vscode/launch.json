@@ -36,7 +36,7 @@
             "args": [
                 "-char_limit", "16",
                 "-validate_batch_size", "16",
-                "-batch_size", "16"
+                "-batch_size", "24"
             ]
         },
         {

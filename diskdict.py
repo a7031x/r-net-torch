@@ -42,7 +42,7 @@ class DiskDict(object):
 
     def _encode_value(self, v):
         v = np.array(v, dtype='float32')
-        head = np.array(v.shape).tobytes()
+        head = np.array(v.shape, dtype=int).tobytes()
         assert len(head) == 8
         content = v.tobytes()
         return head + content

@@ -35,8 +35,8 @@
             "program": "${workspaceFolder}/train.py",
             "args": [
                 "-char_limit", "16",
-                "-validate_batch_size", "16",
-                "-batch_size", "24"
+                "-validate_batch_size", "64",
+                "-batch_size", "64"
             ]
         },
         {

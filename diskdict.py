@@ -24,10 +24,10 @@ class DiskDict(object):
         self._f = plyvel.DB(path, create_if_missing=True, lru_cache_size=1*1024*1024*1024, write_buffer_size=512*1024*1024)
 
     def _enckey(self, k):
-        return k
+        return k.encode('utf8')
 
     def _deckey(self, k):
-        return k
+        return k.decode('utf8')
 
     def get(self, k, default=None):
         '''

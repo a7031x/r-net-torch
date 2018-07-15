@@ -41,11 +41,17 @@ class DiskDict(object):
 
 
     def _encode_value(self, v):
-        return np.array(v).tobytes()
+        v = np.array(v, dtype='float32')
+        head = np.array(v.shape).tobytes()
+        assert len(head) == 8
+        content = v.tobytes()
+        return head + content
 
 
     def _decode_value(self, v):
-        return np.frombuffer(v)
+        shape = np.frombuffer(v[:8], dtype=int)
+        content = np.frombuffer(v[8:], dtype='float32')
+        return content.reshape(shape)
 
 
     def __contains__(self, k):

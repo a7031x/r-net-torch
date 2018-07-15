@@ -38,10 +38,21 @@ class DiskDict(object):
         k = self._enckey(k)
         v = self._f.get(k, None)
         if v is None: return default
+        return self._decode_value(v)
+
+
+    def _encode_value(self, v):
+        n = len(v)
+        head = struct.pack('i', n)
+        content = struct.pack(f'{n}f', v)
+        v = head + content
+        return v
+
+
+    def _decode_value(self, v):
         n = struct.unpack('i', v[:4])
         v = struct.unpack(f'{n}f', v[4:])
         return v
-
 
     def __contains__(self, k):
         k = self._enckey(k)
@@ -55,11 +66,7 @@ class DiskDict(object):
 
     def __setitem__(self, k, v):
         k = self._enckey(k)
-        n = len(v)
-        head = struct.pack('i', n)
-        content = struct.pack(f'{head}f', v)
-        v = head + content
-        self._f.put(k, v)
+        self._f.put(k, self._encode_value(v))
 
 
     def __delitem__(self, k):
@@ -74,7 +81,7 @@ class DiskDict(object):
         '''
 
         for k, v in self._f:
-            yield self._deckey(k), pickle.loads(v)
+            yield self._deckey(k), self._decode_value(v)
 
     def values(self):
         '''

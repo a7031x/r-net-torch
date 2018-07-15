@@ -1,6 +1,5 @@
 import os
-import struct
-
+import numpy as np
 from deeputil import Dummy
 import plyvel
 
@@ -42,17 +41,12 @@ class DiskDict(object):
 
 
     def _encode_value(self, v):
-        n = len(v)
-        head = struct.pack('i', n)
-        content = struct.pack(f'{n}f', v)
-        v = head + content
-        return v
+        return np.array(v).tobytes()
 
 
     def _decode_value(self, v):
-        n = struct.unpack('i', v[:4])
-        v = struct.unpack(f'{n}f', v[4:])
-        return v
+        return np.frombuffer(v)
+
 
     def __contains__(self, k):
         k = self._enckey(k)

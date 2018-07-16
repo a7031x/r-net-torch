@@ -40,7 +40,7 @@ class Model(nn.Module):
         self.dense_word.add_module(f'linear{word_dim}', nn.Linear(dim*2, word_dim))
         self.dense_word.add_module('tanh', nn.Tanh())
         '''
-        self.dense_word = nn.Linear(self.elmo.dim, word_dim)
+        #self.dense_word = nn.Linear(self.elmo.dim, word_dim)
         self.word_dim = word_dim
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 
@@ -168,7 +168,7 @@ class Model(nn.Module):
     def convert_word_embedding(self, text, ids):
         if hasattr(self, 'elmo'):
             emb = self.elmo.convert(text)
-            return self.dense_word(emb)
+            return emb
         else:
             return self.word_embedding(ids)
 

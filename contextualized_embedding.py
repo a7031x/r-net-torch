@@ -68,7 +68,7 @@ class ElmoEmbedding:
 
     @property
     def dim(self):
-        return 256*2
+        return 2048
 
 
 if __name__ == '__main__':

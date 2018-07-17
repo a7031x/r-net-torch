@@ -35,3 +35,8 @@ def softmax_mask(val, mask):
 
 def gpu_available():
     return torch.cuda.is_available()
+
+
+def use_last_gpu():
+    device = torch.cuda.device_count() - 1
+    torch.cuda.set_device(device)

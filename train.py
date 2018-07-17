@@ -46,6 +46,7 @@ class Logger(object):
 
 
 def train(steps=400, evaluate_size=None):
+    func.use_last_gpu()
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
     log = Logger(opt)

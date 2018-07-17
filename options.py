@@ -43,7 +43,7 @@ def preprocess_opts(parser):
 
 def data_opts(parser):
     group = parser.add_argument_group('data')
-    group.add_argument('-word_dim', type=int, default=512)
+    group.add_argument('-word_dim', type=int, default=2048)
     group.add_argument('-char_dim', type=int, default=8)
     group.add_argument('-char_limit', type=int, default=6)
     group.add_argument('-word_emb_file', type=str, default='./generate/emb.word.json')

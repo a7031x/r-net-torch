@@ -54,12 +54,13 @@ class Model(nn.Module):
         self.rnn_type = nn.GRU if rnn_type == 'gru' else nn.LSTM
         encoder_layers = 3
         #char encoding
-        self.char_rnn = rnn.RNNEncoder(
-            input_size=self.char_embedding.weight.shape[1],
-            num_layers=1,
-            hidden_size=char_hidden_size,
-            bidirectional=True,
-            type='gru')
+        if char_hidden_size != 0:
+            self.char_rnn = rnn.RNNEncoder(
+                input_size=self.char_embedding.weight.shape[1],
+                num_layers=1,
+                hidden_size=char_hidden_size,
+                bidirectional=True,
+                type='gru')
         '''
         self.char_rnn = rnn.StackedBRNN(
             input_size=self.word_dim,
@@ -126,26 +127,28 @@ class Model(nn.Module):
 
         #char encoding
         ql = qh.shape[1]
-        ch = ch.view(n*pl, -1)
-        qh = qh.view(n*ql, -1)
-        ch_len = (ch != data.NULL_ID).sum(-1)
-        qh_len = (qh != data.NULL_ID).sum(-1)
-
-        ch_emb = self.char_embedding(ch)#[n*pl, cl, dc]
-        qh_emb = self.char_embedding(qh)#[n*ql, cl, dc]
-        ch_emb = self.dropout(ch_emb)
-        qh_emb = self.dropout(qh_emb)
-
-        _, state = self.char_rnn(ch_emb, ch_len)#[num_layers,n*pl,dc]
-        ch_emb = torch.cat([state[0], state[1]], -1).view(n, pl, -1)
-        _, state = self.char_rnn(qh_emb, qh_len)
-        qh_emb = torch.cat([state[0], state[1]], -1).view(n, ql, -1)
-
-        #encoding
         c_emb = self.convert_word_embedding(ct, c)
         q_emb = self.convert_word_embedding(qt, q)
-        c_emb = torch.cat([c_emb, ch_emb], -1)#[n, pl, dw+dc=500]
-        q_emb = torch.cat([q_emb, qh_emb], -1)#[n, ql, dw+dc=500]
+
+        if hasattr(self, 'char_rnn'):
+            ch = ch.view(n*pl, -1)
+            qh = qh.view(n*ql, -1)
+            ch_len = (ch != data.NULL_ID).sum(-1)
+            qh_len = (qh != data.NULL_ID).sum(-1)
+
+            ch_emb = self.char_embedding(ch)#[n*pl, cl, dc]
+            qh_emb = self.char_embedding(qh)#[n*ql, cl, dc]
+            ch_emb = self.dropout(ch_emb)
+            qh_emb = self.dropout(qh_emb)
+
+            _, state = self.char_rnn(ch_emb, ch_len)#[num_layers,n*pl,dc]
+            ch_emb = torch.cat([state[0], state[1]], -1).view(n, pl, -1)
+            _, state = self.char_rnn(qh_emb, qh_len)
+            qh_emb = torch.cat([state[0], state[1]], -1).view(n, ql, -1)
+
+            #encoding
+            c_emb = torch.cat([c_emb, ch_emb], -1)#[n, pl, dw+dc=500]
+            q_emb = torch.cat([q_emb, qh_emb], -1)#[n, ql, dw+dc=500]
 
         c_len = (c != data.NULL_ID).sum(-1)
         q_len = (q != data.NULL_ID).sum(-1)

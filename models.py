@@ -28,18 +28,19 @@ class Model(nn.Module):
         dim = self.elmo.dim
         while True:
             prev_dim = dim
-            dim = dim * 3 // 4
+            dim = dim // 2
             if dim < word_dim:
                 break
             linear = nn.Linear(prev_dim, dim)
             relu = nn.LeakyReLU(0.1)
             norm = nn.BatchNorm1d(dim)
-            dropout = nn.Dropout(0.3)
+            dropout = nn.Dropout(0.2)
             self.dense_word.add_module(f'linear{dim}', linear)
             self.dense_word.add_module(f'norm{dim}', norm)
             self.dense_word.add_module(f'relu{dim}', relu)
             self.dense_word.add_module(f'dropout{dim}', dropout)
         self.dense_word.add_module(f'linear{word_dim}', nn.Linear(prev_dim, word_dim))
+        self.dense_word.add_module(f'norm{word_dim}', nn.BatchNorm1d(word_dim))
         self.word_dim = word_dim
         self.char_embedding = nn.Embedding(char_vocab_size, char_dim, padding_idx=data.NULL_ID)
 

@@ -4,16 +4,15 @@ import torch
 import utils
 from diskdict import DiskDict
 
-#2048
-options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
-weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
-'''
-#512
-options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x1024_128_2048cnn_1xhighway/elmo_2x1024_128_2048cnn_1xhighway_options.json"
-weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x1024_128_2048cnn_1xhighway/elmo_2x1024_128_2048cnn_1xhighway_weights.hdf5"
-'''
 class ElmoEmbedding:
-    def __init__(self):
+    def __init__(self, dim):
+        if dim == 2048:
+            options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json"
+            weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5"
+        elif dim == 512:
+            options_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x1024_128_2048cnn_1xhighway/elmo_2x1024_128_2048cnn_1xhighway_options.json"
+            weight_file = "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x1024_128_2048cnn_1xhighway/elmo_2x1024_128_2048cnn_1xhighway_weights.hdf5"
+        self.dim = dim
         self.elmo = Elmo(options_file, weight_file, 2, dropout=0)
         if func.gpu_available():
             self.elmo = self.elmo.cuda()
@@ -26,7 +25,7 @@ class ElmoEmbedding:
 
 
     def load(self):
-        self.cache = DiskDict('./generate/elmo.cache')
+        self.cache = DiskDict(f'./generate/elmo.{self.dim}.cache')
 
 
     def convert(self, sentences):
@@ -66,15 +65,10 @@ class ElmoEmbedding:
         return embeddings, mask
 
 
-    @property
-    def dim(self):
-        return 2048
-
-
 if __name__ == '__main__':
     import torch
 
-    elmo = ElmoEmbedding()
+    elmo = ElmoEmbedding(512)
     # use batch_to_ids to convert sentences to character ids
     sentences = [['First', 'sentence', '.'], ['Another', '.']]
     embeddings = elmo.convert(sentences)

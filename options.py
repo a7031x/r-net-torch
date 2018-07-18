@@ -7,6 +7,7 @@ def model_opts(parser):
     group.add_argument('-rnn_type', type=str, default='gru')
     group.add_argument('-ckpt_path', type=str, default='./checkpoint/model.pt')
     group.add_argument('-with_elmo', type=int, default=1)
+    group.add_argument('-embedding_dim', type=int, default=512)
 
 
 def train_opts(parser):
@@ -43,7 +44,7 @@ def preprocess_opts(parser):
 
 def data_opts(parser):
     group = parser.add_argument_group('data')
-    group.add_argument('-word_dim', type=int, default=2048)
+    group.add_argument('-word_dim', type=int, default=300)
     group.add_argument('-char_dim', type=int, default=8)
     group.add_argument('-char_limit', type=int, default=6)
     group.add_argument('-word_emb_file', type=str, default='./generate/emb.word.json')

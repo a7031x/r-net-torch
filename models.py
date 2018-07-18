@@ -26,6 +26,7 @@ class Model(nn.Module):
         self.elmo = ElmoEmbedding(embedding_dim)
         if embedding_dim != word_dim:
             self.dense_word = nn.Sequential()
+            dim = embedding_dim
             while True:
                 prev_dim = dim
                 dim = dim // 2
@@ -215,7 +216,7 @@ def build_model(opt, dataset=None):
     model = Model()
     if opt.dataset == 'squad':
         if opt.with_elmo == 1:
-            model.with_contextualized_embedding(opt.word_dim, len(dataset.char_emb), opt.char_dim)
+            model.with_contextualized_embedding(opt.embedding_dim, opt.word_dim, len(dataset.char_emb), opt.char_dim)
         else:
             model.with_embedding(func.tensor(dataset.word_emb), func.tensor(dataset.char_emb))
     else:

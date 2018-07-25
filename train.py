@@ -5,6 +5,7 @@ import models
 import random
 import func
 import utils
+import optimization
 from torch.nn.utils import clip_grad_norm_
 
 
@@ -49,24 +50,28 @@ def train(steps=400, evaluate_size=None):
     func.use_last_gpu()
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
+    autodecay = optimization.AutoDecay(optimizer)
     log = Logger(opt)
     if ckpt is not None:
         _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, char_limit=opt.char_limit, size=evaluate_size)
     else:
         last_accuracy = 0
-    while True:
+    while not autodecay.should_stop():
         run_epoch(opt, model, feeder, optimizer, steps)
         em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.validate_batch_size, char_limit=opt.char_limit, size=evaluate_size)
         if accuracy > last_accuracy:
             models.save_models(opt, model, optimizer, feeder)
             last_accuracy = accuracy
+            autodecay.better()
             log('MODEL SAVED WITH ACCURACY EM:{:>.2F}, F1:{:>.2F}.'.format(em, accuracy))
         else:
+            autodecay.worse()
+            log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
+            '''
             if random.randint(0, 4) == 0:
                 models.restore(opt, model, optimizer, feeder)
                 log('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
             else:
                 log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
-
-
+            '''
 train()

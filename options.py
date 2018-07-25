@@ -22,7 +22,7 @@ def train_opts(parser):
 
 def evaluate_opts(parser):
     group = parser.add_argument_group('evaluate')
-    group.add_argument('-batch_size', type=int, default=32)
+    group.add_argument('-batch_size', type=int, default=64)
     group.add_argument('-output_file', type=str, default='./output/evaluate.txt')
     group.add_argument('-dropout', type=float, default=0)
 
@@ -46,7 +46,7 @@ def data_opts(parser):
     group = parser.add_argument_group('data')
     group.add_argument('-word_dim', type=int, default=300)
     group.add_argument('-char_dim', type=int, default=8)
-    group.add_argument('-char_limit', type=int, default=6)
+    group.add_argument('-char_limit', type=int, default=16)
     group.add_argument('-word_emb_file', type=str, default='./generate/emb.word.json')
     group.add_argument('-char_emb_file', type=str, default='./generate/emb.char.json')
     group.add_argument('-w2i_file', type=str, default='./generate/w2i.json')

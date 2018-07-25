@@ -66,7 +66,7 @@ def train(steps=400, evaluate_size=None):
             log('MODEL SAVED WITH ACCURACY EM:{:>.2F}, F1:{:>.2F}.'.format(em, accuracy))
         else:
             autodecay.worse()
-            log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
+            log(f'CONTINUE TRAINING {accuracy:>.2F}/{last_accuracy:>.2F}, decay = {autodecay.decay_counter} lr = {autodecay.learning_rate:>.6F}.')
             '''
             if random.randint(0, 4) == 0:
                 models.restore(opt, model, optimizer, feeder)

@@ -66,13 +66,10 @@ def train(steps=400, evaluate_size=None):
             log('MODEL SAVED WITH ACCURACY EM:{:>.2F}, F1:{:>.2F}.'.format(em, accuracy))
         else:
             autodecay.worse()
-            log(f'CONTINUE TRAINING {accuracy:>.2F}/{last_accuracy:>.2F}, decay = {autodecay.decay_counter} lr = {autodecay.learning_rate:>.6F}.')
-
             if autodecay.should_stop():
                 models.restore(opt, model, optimizer, feeder)
                 autodecay = optimization.AutoDecay(optimizer, max_lr=opt.learning_rate)
-                log('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
+                log(f'MODEL RESTORED {accuracy:>.2F}/{last_accuracy:>.2F}, decay = {autodecay.decay_counter}, lr = {autodecay.learning_rate:>.6F}.')
             else:
-                log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
-
+                log(f'CONTINUE TRAINING {accuracy:>.2F}/{last_accuracy:>.2F}, decay = {autodecay.decay_counter}, lr = {autodecay.learning_rate:>.6F}.')
 train()

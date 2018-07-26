@@ -50,7 +50,7 @@ def train(steps=400, evaluate_size=None):
     func.use_last_gpu()
     opt = make_options()
     model, optimizer, feeder, ckpt = models.load_or_create_models(opt, True)
-    autodecay = optimization.AutoDecay(optimizer)
+    autodecay = optimization.AutoDecay(optimizer, max_lr=opt.learning_rate)
     log = Logger(opt)
     if ckpt is not None:
         _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, char_limit=opt.char_limit, size=evaluate_size)
@@ -70,7 +70,7 @@ def train(steps=400, evaluate_size=None):
 
             if autodecay.should_stop():
                 models.restore(opt, model, optimizer, feeder)
-                autodecay = optimization.AutoDecay(optimizer)
+                autodecay = optimization.AutoDecay(optimizer, max_lr=opt.learning_rate)
                 log('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
             else:
                 log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))

@@ -56,7 +56,7 @@ def train(steps=400, evaluate_size=None):
         _, last_accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.batch_size, char_limit=opt.char_limit, size=evaluate_size)
     else:
         last_accuracy = 0
-    while not autodecay.should_stop():
+    while True:
         run_epoch(opt, model, feeder, optimizer, steps)
         em, accuracy = evaluate.evaluate_accuracy(model, feeder.dataset, batch_size=opt.validate_batch_size, char_limit=opt.char_limit, size=evaluate_size)
         if accuracy > last_accuracy:
@@ -67,11 +67,12 @@ def train(steps=400, evaluate_size=None):
         else:
             autodecay.worse()
             log(f'CONTINUE TRAINING {accuracy:>.2F}/{last_accuracy:>.2F}, decay = {autodecay.decay_counter} lr = {autodecay.learning_rate:>.6F}.')
-            '''
-            if random.randint(0, 4) == 0:
+
+            if autodecay.should_stop():
                 models.restore(opt, model, optimizer, feeder)
+                autodecay = optimization.AutoDecay(optimizer)
                 log('MODEL RESTORED {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
             else:
                 log('CONTINUE TRAINING {:>.2F}/{:>.2F}.'.format(accuracy, last_accuracy))
-            '''
+
 train()

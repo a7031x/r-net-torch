@@ -20,6 +20,15 @@
             ]
         },
         {
+            "name": "preprocess chinese",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/preprocess.py",
+            "args": [
+                "-dataset", "drcd"
+            ]
+        },
+        {
             "name": "train chinese",
             "type": "python",
             "request": "launch",
